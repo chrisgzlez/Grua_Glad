@@ -41,7 +41,7 @@ GLuint VAO;
 GLuint VAOCuadrado;
 
 // Vertex Buffer Object
-// GLuint VBO
+GLuint VBO;
 
 // 
 // GLuint EBO
@@ -82,36 +82,55 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 
 
 void dibujaCuadrado() {
-	unsigned int VBO, EBO;
+	GLuint VBO, EBO;
 
 
-	float vertices[] = {
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,0.0f,
+	GLfloat vertices[] = {
+		-0.5f, -0.5f,  0.5f,  0.9765625f, 0.5859375f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.5390625f, 0.08984375f, 0.74609375f,
+		 0.5f,  0.5f,  0.5f,  0.5390625f, 0.08984375f, 0.74609375f,
 
 	};
 
+	// Creamos el array del VAO
 	glGenVertexArrays(1, &VAOCuadrado);
+
+	// Creaa el buffer del objeto
 	glGenBuffers(1, &VBO);
+
+	// NI Idea
 	glGenBuffers(1, &EBO);
+
 	// bind the Vertex Array Object first.
+	// Lo convertimos en el VAO actual
 	glBindVertexArray(VAOCuadrado);
 
+	// Lo trae al contexto actual. Lo convierte en el objeto actual
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// Guardamos los vertices en el VBO
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+	/// CARGAR EN VAO
+	// Comunica con el shader
+	// Primero: posicion del VAO donde metemos los vertices.
+	// Segundo: Numero de vertices (3)
+	// Tercero: Tipo de dato
+	// Cuarto: Suda
+	// Quinto: step entre vertices
+	// Sexto:: Offset, donde empieza
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	// Esto lo activa. Le pasamos la posicion del VAO que queremos activar
 	glEnableVertexAttribArray(0);
 
 	// position Color
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
 
+	/// FIN CARGAR EN VAO
 
-
+	// Ponerlo a 0, evita problemas
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	glDeleteBuffers(1, &VBO);
@@ -123,31 +142,79 @@ void openGlInit() {
 	//Habilito aqui el depth en vez de arriba para los usuarios de linux y mac mejor arriba
 	//Incializaciones varias
 	glClearDepth(1.0f); //Valor z-buffer
-	glClearColor(0.1015625f, 0.15234375f, 0.30859375, 1.0f);  // valor limpieza buffer color
+	glClearColor(0.7265625f, 0.7421875f, 1.0f, 1.0f);  // valor limpieza buffer color
 	glEnable(GL_DEPTH_TEST); // z-buffer
 	glEnable(GL_CULL_FACE); //ocultacion caras back
 	glCullFace(GL_BACK);
+}
+
+void display_suelo() {
+	/// DIBUJAR SUELO
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	glm::mat4 transform, temp;
+
+	// Posicion de la matriz de transformacion en el shader
+	GLuint transformLoc = glGetUniformLocation(shaderProgram, "transform");
+
+	float escala_suelo = 10;
+
+	for (float x = -1; x <= 1; x += (1 / escala_suelo)) {
+		for (float y = -1; y <= 1; y += (1 / escala_suelo)) {
+			// Calculo la Matriz
+			transform = glm::mat4(); // Matriz Identidad
+
+			// Rota cada uno de los cuadrados antes de colocarlos
+			transform = glm::rotate(transform, (GLfloat)(angulo * A_RADIANES), glm::vec3(1.0f, 0.f, 0.f));
+
+			// Los colocamos en su posicion
+			transform = glm::translate(transform, glm::vec3(x, y, 0.f));
+
+			// Los escalamos al tamaño
+			transform = glm::scale(transform, glm::vec3((GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo)));
+
+			// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
+			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+			// Cargamos el vao de la figura del cuadrado en el contexto principal
+			glBindVertexArray(VAOCuadrado);
+
+			// Dibujamos lso cuadrados
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+
+	}
 }
 
 int main(int argc, char** argv) {
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
+
+	// Indica a glfw que version estamos usando de OpenGl: (mayor)3.(minor)3
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	// Estamos usando el perfil CORE
+	// Signifca que solo usamos las funciones modernas
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
 	//Creo la ventana
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Clases", NULL, NULL);
+
+	// Procesa errores en creacion de ventanas
 	if (window == NULL)
 	{
 		cout << "Failed to create GLFW window" << endl;
 		glfwTerminate();
 		return -1;
 	}
+
+	// Introduce la ventana al contexto actual
 	glfwMakeContextCurrent(window);
+
+	// TODO: Mirar que hace
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	// glad: load all OpenGL function pointers
@@ -157,10 +224,16 @@ int main(int argc, char** argv) {
 		cout << "Failed to initialize GLAD" << endl;
 		return -1;
 	}
-	// generarShader();
-	shaderProgram = setShaders("shader.vert", "shader.frag");
-
+	
 	openGlInit();
+
+	// Genera el shader program a partir de los archivos
+	shaderProgram = setShaders("resources\\shader.vert", "resources\\shader.frag");
+
+	dibujaCuadrado();
+
+	// Activamos o shader
+	glUseProgram(shaderProgram);
 
 
 	// uncomment this call to draw in wireframe polygons.
@@ -170,6 +243,7 @@ int main(int argc, char** argv) {
 	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
+
 		// input
 		// -----
 		processInput(window);
@@ -177,42 +251,36 @@ int main(int argc, char** argv) {
 		// render
 		// ------
 
-		glClearColor(0.1015625f, 0.15234375f, 0.30859375, 1.0f);  // valor limpieza buffer color
+		// Establecemos el color de limpieza del buffer
+		glClearColor(0.1015625f, 0.15234375f, 0.30859375, 1.0f);
+
+		// Limpiamos el buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		display_suelo();
 
+		/// Dibujar Cuadrado
+		// Traemos el VAO que queremos como principal
+		// glBindVertexArray(VAOCuadrado);
+		// glDrawArrays(GL_TRIANGLES, 0, 6);
+		/// FIN Dibujar Cuadrado
 
-		/// DIBUJAR SUELO
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
-		glm::mat4 transform, temp;
+		// Tipo de array, algo, numero de vertices 
+		//glDrawArrays(GL_LINES, 0, 900);
 
-		// Posicion de la matriz de transformacion en el shader
-		GLuint transformLoc = glGetUniformLocation(shaderProgram, "transform");
+		//glBindVertexArray(0); // no need to unbind it every time 
 
-		float escala_suelo = 10;
-
-		for (float x = -2; x <= 2; x += (1 / escala_suelo)) {
-			for (float y = -2; y <= 2; y += (1 / escala_suelo)) {
-				// Calculo la Matriz
-				transform = glm::mat4(); // Identidad
-				transform = glm::rotate(transform, (GLfloat)(angulo * A_RADIANES), glm::vec3(1.0f, 0.f, 0.f));
-			}
-
-		}
-
-		/// FIN DIBUJAR SUELO
 
 		// ESto no funciona
 		// dibujo los ejes
-		dibujaCuadrado();
-		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+		// dibujaCuadrado(); // no funciona asi
 
-		// Tipo de array, algo, numero de vertices 
-		glDrawArrays(GL_LINES, 0, 900);
-
-		glBindVertexArray(0); // no need to unbind it every time 
-
+		
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		
+		/// FIN DIBUJAR SUELO
 
 
 
@@ -222,9 +290,11 @@ int main(int argc, char** argv) {
 		glfwPollEvents();
 	}
 
+	/// Liberar Memoria
 	// optional: de-allocate all resources once they've outlived their purpose:
 	// ------------------------------------------------------------------------
 	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &VAOCuadrado);
 
 
 	// glfw: terminate, clearing all previously allocated GLFW resources.
