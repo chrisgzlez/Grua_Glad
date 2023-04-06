@@ -1,22 +1,18 @@
-#pragma warning(disable:4996)
-#include <glad.h>
 #include <glfw3.h>
-#include <stdio.h>
-#include <math.h> 
-#include <iostream>
-
 
 
 //Normales, texturas, vertices
 //360 triangulos 1080
 
-float vertices_esfera[] = 
+GLfloat vertices_esfera[] = 
 	{ -0.0247692f, 0.987385f, -0.156387f,
 		0.0250000f, 1.00000f,
 		0.00100000f, 1.00100f, -0.00100000f,
+
 		-0.0567020f, 0.931997f, -0.358003f,
 		-5.96046e-008f, 0.900000f,
 		0.000999987f, 0.952057f, -0.310017f,
+
 		-0.118514f, 0.940755f, -0.317702f,
 		0.0500000f, 0.900000f,
 		-0.0944915f, 0.952057f, -0.294893f,

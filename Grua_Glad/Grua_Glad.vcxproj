@@ -76,12 +76,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\include_lib</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\include_lib;$(ProjectDir)\headers</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)\include_lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\include_lib;$(ProjectDir)\headers</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -138,6 +138,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glad\glad.h" />
+    <ClInclude Include="headers\cuadrado.h" />
+    <ClInclude Include="headers\cubo.h" />
+    <ClInclude Include="headers\esfera.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shader.frag" />

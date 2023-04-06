@@ -13,6 +13,11 @@
 #include <lecturaShader_0_9.h>
 
 
+// Vertices
+#include <cubo.h>
+#include <cuadrado.h>
+#include <esfera.h>
+
 #include <iostream>
 
 #define A_RADIANES M_PI / 180
@@ -39,6 +44,8 @@ const unsigned int SCR_HEIGHT = 600;
 // Vertex Array Object
 GLuint VAO;
 GLuint VAOCuadrado;
+GLuint VAOCubo;
+GLuint VAOEsfera;
 
 // Vertex Buffer Object
 GLuint VBO;
@@ -79,18 +86,109 @@ objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f,  0 };
 /// TODO: Implementar
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
 
-
-
-void dibujaCuadrado() {
+void cargar_esfera() {
 	GLuint VBO, EBO;
 
+	// Creamos el array del VAO
+	glGenVertexArrays(1, &VAOEsfera);
 
-	GLfloat vertices[] = {
-		-0.5f, -0.5f,  0.5f,  0.9765625f, 0.5859375f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.5390625f, 0.08984375f, 0.74609375f,
-		 0.5f,  0.5f,  0.5f,  0.5390625f, 0.08984375f, 0.74609375f,
+	// Creaa el buffer del objeto
+	glGenBuffers(1, &VBO);
 
-	};
+	// NI Idea
+	glGenBuffers(1, &EBO);
+
+	// bind the Vertex Array Object first.
+	// Lo convertimos en el VAO actual
+	glBindVertexArray(VAOEsfera);
+
+	// Lo trae al contexto actual. Lo convierte en el objeto actual
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// Guardamos los vertices en el VBO
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_esfera), vertices_esfera, GL_STATIC_DRAW);
+
+	/// CARGAR EN VAO
+	// Comunica con el shader
+	// Primero: posicion del VAO donde metemos los vertices.
+	// Segundo: Numero de vertices (3)
+	// Tercero: Tipo de dato
+	// Cuarto: Suda
+	// Quinto: step entre vertices
+	// Sexto:: Offset, donde empieza
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+
+	// Esto lo activa. Le pasamos la posicion del VAO que queremos activar
+	glEnableVertexAttribArray(0);
+
+	// position normal
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(1);
+
+	// position textura
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+	/// FIN CARGAR EN VAO
+
+	// Ponerlo a 0, evita problemas
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &EBO);
+}
+
+
+void cargar_cubo() {
+	GLuint VBO, EBO;
+
+	// Creamos el array del VAO
+	glGenVertexArrays(1, &VAOCubo);
+
+	// Creaa el buffer del objeto
+	glGenBuffers(1, &VBO);
+
+	// NI Idea
+	glGenBuffers(1, &EBO);
+
+	// bind the Vertex Array Object first.
+	// Lo convertimos en el VAO actual
+	glBindVertexArray(VAOCubo);
+
+	// Lo trae al contexto actual. Lo convierte en el objeto actual
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// Guardamos los vertices en el VBO
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_cubo), vertices_cubo, GL_STATIC_DRAW);
+
+	/// CARGAR EN VAO
+	// Comunica con el shader
+	// Primero: posicion del VAO donde metemos los vertices.
+	// Segundo: Numero de vertices (3)
+	// Tercero: Tipo de dato
+	// Cuarto: Suda
+	// Quinto: step entre vertices
+	// Sexto:: Offset, donde empieza
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+
+	// Esto lo activa. Le pasamos la posicion del VAO que queremos activar
+	glEnableVertexAttribArray(0);
+
+	// position Color
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+	/// FIN CARGAR EN VAO
+
+	// Ponerlo a 0, evita problemas
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &EBO);
+}
+
+
+void cargar_cuadrado() {
+	GLuint VBO, EBO;
 
 	// Creamos el array del VAO
 	glGenVertexArrays(1, &VAOCuadrado);
@@ -109,7 +207,7 @@ void dibujaCuadrado() {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	// Guardamos los vertices en el VBO
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_cuadrado), vertices_cuadrado, GL_STATIC_DRAW);
 
 	/// CARGAR EN VAO
 	// Comunica con el shader
@@ -148,19 +246,20 @@ void openGlInit() {
 	glCullFace(GL_BACK);
 }
 
-void display_suelo() {
-	/// DIBUJAR SUELO
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	glm::mat4 transform, temp;
+// TODO: mirar lo de la trama
+void display_suelo(GLuint transform_loc) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	glm::mat4 transform;
 
 	// Posicion de la matriz de transformacion en el shader
-	GLuint transformLoc = glGetUniformLocation(shaderProgram, "transform");
+	
 
 	float escala_suelo = 10;
 
-	for (float x = -1; x <= 1; x += (1 / escala_suelo)) {
-		for (float y = -1; y <= 1; y += (1 / escala_suelo)) {
+	for (float x = -2; x <= 2; x += (1 / escala_suelo)) {
+		for (float y = -2; y <= 2; y += (1 / escala_suelo)) {
 			// Calculo la Matriz
 			transform = glm::mat4(); // Matriz Identidad
 
@@ -174,12 +273,12 @@ void display_suelo() {
 			transform = glm::scale(transform, glm::vec3((GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo)));
 
 			// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
-			glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+			glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
 			// Cargamos el vao de la figura del cuadrado en el contexto principal
 			glBindVertexArray(VAOCuadrado);
 
-			// Dibujamos lso cuadrados
+			// Dibujamos los cuadrados
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 		}
 
@@ -230,10 +329,17 @@ int main(int argc, char** argv) {
 	// Genera el shader program a partir de los archivos
 	shaderProgram = setShaders("resources\\shader.vert", "resources\\shader.frag");
 
-	dibujaCuadrado();
+	/// Cargar en VAO las figuras
+	cargar_cuadrado();
+	cargar_cubo();
+	cargar_esfera();
+
+	/// FIN CARGAR figuras en el VAO
 
 	// Activamos o shader
 	glUseProgram(shaderProgram);
+
+	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
 
 
 	// uncomment this call to draw in wireframe polygons.
@@ -257,13 +363,45 @@ int main(int argc, char** argv) {
 		// Limpiamos el buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		display_suelo();
+		/// SUELO
+		// DESCOMENTAR
+		display_suelo(transform_loc);
+		/// FIN SUELO
 
-		/// Dibujar Cuadrado
-		// Traemos el VAO que queremos como principal
-		// glBindVertexArray(VAOCuadrado);
-		// glDrawArrays(GL_TRIANGLES, 0, 6);
-		/// FIN Dibujar Cuadrado
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		
+		/// Dibujar Base Grua (CUBO)
+		// Definimos matrices de transformacion
+		glm::mat4 transform, temp;
+
+		// Rota cada uno de los cuadrados antes de colocarlos
+		transform = glm::rotate(transform, (GLfloat)(angulo * A_RADIANES), glm::vec3(1.0f, 0.f, 0.f));
+
+		// La colocamos en su posicion
+		transform = glm::translate(transform, glm::vec3(base_grua.px, base_grua.py, base_grua.pz));
+
+		// Guardamos esta matriz de posicion y rotacion
+		// Para usarla como base en las siguientes partes de la grua
+		temp = transform;
+
+		// Tamaño de la base de la grua
+		transform = glm::scale(transform, glm::vec3(base_grua.sx, base_grua.sy, base_grua.sz));
+
+		// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
+		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+
+		// Cargamos el vao de la figura del cuadrado en el contexto principal
+		glBindVertexArray(VAOCubo);
+
+		// Dibujamos los cuadrados
+		glDrawArrays(GL_TRIANGLES, 0, 12);
+
+
+		// NI PUTA IDEA CHO
+		//glBindVertexArray(VAO);
+		//glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, 0);
+		
+		/// FIN Dibujar CUBO
 
 		//glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
@@ -280,8 +418,6 @@ int main(int argc, char** argv) {
 		
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
-		/// FIN DIBUJAR SUELO
-
 
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
