@@ -22,6 +22,7 @@
 
 #define MAX_ANGULO_ROT_ART_2 90
 #define MAX_ANGULO_ROT_ART_1 70
+#define SIZE_SUELO 4
 
 
 using namespace std;
@@ -45,8 +46,8 @@ GLuint VAOCuadrado;
 GLuint VAOCubo;
 GLuint VAOEsfera;
 
-float w = 800;
-float h = 800;
+GLsizei w = SCR_WIDTH;
+GLsizei h = SCR_HEIGHT;
 
 // Vertex Buffer Object
 GLuint VBO;
@@ -298,8 +299,8 @@ void display_suelo(GLuint transform_loc) {
 
 	float escala_suelo = 10;
 
-	for (float x = -2; x <= 2; x += (1 / escala_suelo)) {
-		for (float y = -2; y <= 2; y += (1 / escala_suelo)) {
+	for (float x = -SIZE_SUELO; x <= SIZE_SUELO; x += (1 / escala_suelo)) {
+		for (float y = -SIZE_SUELO; y <= SIZE_SUELO; y += (1 / escala_suelo)) {
 			// Calculo la Matriz
 			transform = glm::mat4(); // Matriz Identidad
 
@@ -395,11 +396,9 @@ void actualizar_pos() {
 void camara() {
 
 	//primero configuramos el viewport
-
 	glViewport(0, 0, w, h);
 
 	//matriz de view
-
 	glm::mat4 view;
 	view = glm::mat4();
 
@@ -407,7 +406,7 @@ void camara() {
 	//la posicionamos en el 0 0 y le damos un poco de altura
 	// miramos al centro de la pantalla
 	// y en el caso de la normal que apunte hacia el eje y
-	view = glm::lookAt(glm::vec3(.0f, .0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
@@ -416,13 +415,13 @@ void camara() {
 	projection = glm::mat4();
 
 	//añadimos la perspectiva a la ventana
-	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.1f, 5.0f);
+	projection = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 8.0f);
 	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
 	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
 
-void tercerapersona(float posicionx, float posiciony, float posicionz, float angulo) {
+void tercerapersona(objeto base) {
 	
 	//primero configuramos el viewport
 	
@@ -438,11 +437,11 @@ void tercerapersona(float posicionx, float posiciony, float posicionz, float ang
 	// y en el caso de la normal que apunte hacia el eje y
 	
 	view = glm::lookAt(
-		glm::vec3(posicionx - .5 * cos(glm::radians(angulo)), posiciony - .5 * sin(glm::radians(angulo)), posicionz + .4),
-		glm::vec3(posicionx + 10 * cos(glm::radians(angulo)), posiciony + 10 * sin(glm::radians(angulo)), posicionz),
+		glm::vec3(base.px - 0.5 * cos(glm::radians(base.ang_trans_x)), base.py - 0.5 * sin(glm::radians(base.ang_trans_x)), base.pz + .4),
+		glm::vec3(base.px + 10 * cos(glm::radians(base.ang_trans_x)), base.py + 10 * sin(glm::radians(base.ang_trans_x)), base.pz),
 		glm::vec3(0.0f, 0.0f, 1.0f));
 
-	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
+	GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
 	//matriz de proyeccion
@@ -450,16 +449,15 @@ void tercerapersona(float posicionx, float posiciony, float posicionz, float ang
 	projection = glm::mat4();
 
 	//perspectiva
-	// 
-	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.01f, 5.0f);
-	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	projection = glm::perspective(glm::radians(60.0f), (GLfloat)w / (GLfloat)h, 0.01f, 5.0f);
+	GLuint proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
 	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 
 
 }
 
-void primerapersona(float posicionx, float posiciony, float posicionz, float angulo) {
+void primerapersona(objeto base) {
 
 	//primero configuramos el viewport
 
@@ -469,13 +467,12 @@ void primerapersona(float posicionx, float posiciony, float posicionz, float ang
 	glm::mat4 view;
 	view = glm::mat4();
 
-	//miramos como si fueramos el conductor de la grua (parte de alante del cubo
+	// miramos como si fueramos el conductor de la grua (parte de alante del cubo
 	// miramos un poco mas alejado de ese punto
-	// 
-	view = glm::lookAt(glm::vec3(posicionx, posiciony, posicionz + 0.2),
-		glm::vec3(posicionx + (1.5 * cos(glm::radians(angulo))), posiciony + (1.5 * sin(glm::radians(angulo))), posicionz + 0.2),
+	view = glm::lookAt(glm::vec3(base.px, base.py, base.pz + 0.2),
+		glm::vec3(base.px + (1.5 * cos(glm::radians(base.ang_trans_x))), base.py + (1.5 * sin(glm::radians(base.ang_trans_x))), base.pz + 0.2),
 		glm::vec3(0.0f, 0.0f, 1.0f));
-	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
+	GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
 	//matriz de projeccion
@@ -484,7 +481,7 @@ void primerapersona(float posicionx, float posiciony, float posicionz, float ang
 	
 	//perpectiva
 	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.1f, 5.0f);
-	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	GLuint proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
 	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 }
 
@@ -507,7 +504,7 @@ int main(int argc, char** argv) {
 
 
 	//Creo la ventana
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Clases", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Grua", NULL, NULL);
 
 	// Procesa errores en creacion de ventanas
 	if (window == NULL)
@@ -551,12 +548,6 @@ int main(int argc, char** argv) {
 
 	// Obtenemos la localizacion de la matriz en el shader
 	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
-	GLuint view_loc = glGetUniformLocation(shaderProgram, "view");
-	GLuint projection_loc = glGetUniformLocation(shaderProgram, "projection");
-
-	glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-	glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-
 
 	///MAIN LOOP
 	// -----------
@@ -576,14 +567,13 @@ int main(int argc, char** argv) {
 		//si es 2 camara libre
 		if (eleccion_camara==2) {
 			camara();
-
 		}else if(eleccion_camara==1){ //si es 1 es camara en primera persona
-			primerapersona(base_grua.px, base_grua.py, base_grua.pz, base_grua.ang_trans_x);
-
-		}
-		else if(eleccion_camara==3){ // si es 3 es tercera persona
-			tercerapersona(base_grua.px, base_grua.py, base_grua.pz, base_grua.ang_trans_x);
-
+			angulo_camara = 0;
+			primerapersona(base_grua);
+			
+		} else if(eleccion_camara==3){ // si es 3 es tercera persona
+			angulo_camara = 0;
+			tercerapersona(base_grua);
 		}
 		
 		/// SUELO
@@ -591,12 +581,12 @@ int main(int argc, char** argv) {
 		/// FIN SUELO
 
 		/// DIBUJAR EJES
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
-
-		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f))));
-		glBindVertexArray(VAOEjes);
-		glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
+		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
+		// 
+		// glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f))));
+		// glBindVertexArray(VAOEjes);
+		// glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
 		/// FIN DIBUJAR EJES
 		
 		/// GRUA
@@ -644,27 +634,24 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods) {
 
-	//codigo asci de las teclas que estamos pulsando
-	std::cout << key << std::endl;
-
-
-
 	//subir y bajar la camara
 	//k y l para subir y bajar
 	
-	/// subir camara
-	if (key == GLFW_KEY_K) {//letra k
-		angulo_camara++;
-		if (glm::radians(angulo_camara) >= M_2_PI) {
-			angulo_camara -= M_2_PI;
+	if (eleccion_camara == 2){
+		/// subir camara
+		if (key == GLFW_KEY_K) {//letra k
+			angulo_camara++;
+			if (glm::radians(angulo_camara) >= M_2_PI) {
+				angulo_camara -= (GLfloat)M_2_PI;
+			}
 		}
-	}
 
-	/// bajar camara
-	if (key == GLFW_KEY_L) {//letra l
-		angulo_camara--;
-		if (glm::radians(angulo_camara) <= -M_2_PI) {
-			angulo_camara += M_2_PI;
+		/// bajar camara
+		if (key == GLFW_KEY_L) {//letra l
+			angulo_camara--;
+			if (glm::radians(angulo_camara) <= -M_2_PI) {
+				angulo_camara += (GLfloat)M_2_PI;
+			}
 		}
 	}
 
@@ -682,12 +669,12 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 
 	/// derecha
 	if (key == GLFW_KEY_D) {//letra d
-		base_grua.ang_trans_x++;
+		base_grua.ang_trans_x--;
 	}
 
 	/// izquierda
 	if (key == GLFW_KEY_A) {//letra a
-		base_grua.ang_trans_x--;
+		base_grua.ang_trans_x++;
 	}
 	
 	//espacio para freno de mano
@@ -772,8 +759,5 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	if (key == GLFW_KEY_3) {//espacio
 		eleccion_camara = 3;
 	}
-
-	cout << "Angulo z art 1: " << art_1.ang_trans_z;
-	cout << " Angulo x art 1: " << art_1.ang_trans_x << endl;
 }
 
