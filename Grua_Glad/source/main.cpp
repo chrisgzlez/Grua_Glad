@@ -392,6 +392,105 @@ void actualizar_pos() {
 	base_grua.py += base_grua.vel * sin(glm::radians(base_grua.ang_trans_x));
 }
 
+void camara() {
+
+	//primero configuramos el viewport
+
+	glViewport(0, 0, w, h);
+
+	//matriz de view
+
+	glm::mat4 view;
+	view = glm::mat4();
+
+	//hacemos el lookat para posicionar la camara
+	//la posicionamos en el 0 0 y le damos un poco de altura
+	// miramos al centro de la pantalla
+	// y en el caso de la normal que apunte hacia el eje y
+	view = glm::lookAt(glm::vec3(.0f, .0f, 3.0), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+	//matriz de proyeccion
+	glm::mat4 projection;
+	projection = glm::mat4();
+
+	//añadimos la perspectiva a la ventana
+	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.1f, 5.0f);
+	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+}
+
+
+void tercerapersona(float posicionx, float posiciony, float posicionz, float angulo) {
+	
+	//primero configuramos el viewport
+	
+	glViewport(0, 0, w, h);
+	
+	//matriz de view
+	
+	glm::mat4 view;
+	view = glm::mat4();
+
+	//hacemos el lookat para posicionar la camara detras de la grua
+	//la posicionamos detras de la grua mirando hacia un punto lejano
+	// y en el caso de la normal que apunte hacia el eje y
+	
+	view = glm::lookAt(
+		glm::vec3(posicionx - .5 * cos(glm::radians(angulo)), posiciony - .5 * sin(glm::radians(angulo)), posicionz + .4),
+		glm::vec3(posicionx + 10 * cos(glm::radians(angulo)), posiciony + 10 * sin(glm::radians(angulo)), posicionz),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+
+	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+	//matriz de proyeccion
+	glm::mat4 projection;
+	projection = glm::mat4();
+
+	//perspectiva
+	// 
+	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.01f, 5.0f);
+	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+
+
+}
+
+void primerapersona(float posicionx, float posiciony, float posicionz, float angulo) {
+
+	//primero configuramos el viewport
+
+	glViewport(0, 0, w, h);
+
+	//matriz para la view
+	glm::mat4 view;
+	view = glm::mat4();
+
+	//miramos como si fueramos el conductor de la grua (parte de alante del cubo
+	// miramos un poco mas alejado de ese punto
+	// 
+	view = glm::lookAt(glm::vec3(posicionx, posiciony, posicionz + 0.2),
+		glm::vec3(posicionx + (1.5 * cos(glm::radians(angulo))), posiciony + (1.5 * sin(glm::radians(angulo))), posicionz + 0.2),
+		glm::vec3(0.0f, 0.0f, 1.0f));
+	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+	//matriz de projeccion
+	glm::mat4 projection;
+	projection = glm::mat4();
+	
+	//perpectiva
+	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.1f, 5.0f);
+	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
+	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+}
+
+
+
+
 
 int main(int argc, char** argv) {
 	// glfw: initialize and configure
@@ -473,6 +572,19 @@ int main(int argc, char** argv) {
 
 		// Limpiamos el buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		//si es 2 camara libre
+		if (eleccion_camara==2) {
+			camara();
+
+		}else if(eleccion_camara==1){ //si es 1 es camara en primera persona
+			primerapersona(base_grua.px, base_grua.py, base_grua.pz, base_grua.ang_trans_x);
+
+		}
+		else if(eleccion_camara==3){ // si es 3 es tercera persona
+			tercerapersona(base_grua.px, base_grua.py, base_grua.pz, base_grua.ang_trans_x);
+
+		}
 		
 		/// SUELO
 		display_suelo(transform_loc);
@@ -665,9 +777,3 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	cout << " Angulo x art 1: " << art_1.ang_trans_x << endl;
 }
 
-void camara() {
-
-	//primero configuramos el viewport
-	
-	glViewport(0,0,SCR)
-}
