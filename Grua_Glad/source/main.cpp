@@ -20,7 +20,8 @@
 
 #include <iostream>
 
-#define MAX_ANGULO_ROT 85
+#define MAX_ANGULO_ROT_ART_2 90
+#define MAX_ANGULO_ROT_ART_1 70
 
 
 using namespace std;
@@ -343,6 +344,8 @@ void _construir_partes_grua(glm::mat4* base, objeto obj, GLuint matrix_loc, bool
 		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(0.f, 0.f, 1.f));
 	}
 	else {
+		// Articulacion
+
 		// Rotamos articualcion en el eje x
 		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
 
@@ -473,10 +476,12 @@ int main(int argc, char** argv) {
 		/// FIN SUELO
 
 		/// DIBUJAR EJES
-		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		// glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-		// glBindVertexArray(VAOEjes);
-		// glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
+
+		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4(), glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f))));
+		glBindVertexArray(VAOEjes);
+		glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
 		/// FIN DIBUJAR EJES
 		
 		/// GRUA
@@ -535,14 +540,20 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	/// subir camara
 	if (key == GLFW_KEY_K) {//letra k
 		angulo_camara++;
+		if (glm::radians(angulo_camara) >= M_2_PI) {
+			angulo_camara -= M_2_PI;
+		}
 	}
 
 	/// bajar camara
 	if (key == GLFW_KEY_L) {//letra l
 		angulo_camara--;
+		if (glm::radians(angulo_camara) <= -M_2_PI) {
+			angulo_camara += M_2_PI;
+		}
 	}
+
 	//movimineto de la base
-	
 	
 	/// acelerar
 	if (key == GLFW_KEY_W) {//letra w
@@ -565,68 +576,68 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	}
 	
 	//espacio para freno de mano
-	/// marcha atras/frenar
+	/// freno de mano
 	if (key == GLFW_KEY_SPACE) {//espacio
 		base_grua.vel=0;
 	}
 	
 	//primera articulacion
 	
-	/// subir brazo
+	/// adelante brazo
 	if (key == GLFW_KEY_UP) {//flechira arriba
-		if (art_1.ang_trans_z < MAX_ANGULO_ROT) {
+		if (art_1.ang_trans_z < MAX_ANGULO_ROT_ART_1) {
 			art_1.ang_trans_z++;
 		}
 	}
 
-	/// bajar brazo
+	/// atras brazo
 	if (key == GLFW_KEY_DOWN) {//flechita abajo
-		if (art_1.ang_trans_z > -MAX_ANGULO_ROT) {
+		if (art_1.ang_trans_z > -MAX_ANGULO_ROT_ART_1) {
 			art_1.ang_trans_z--;
 		}
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_RIGHT) {//flechita derecha
-		if (art_1.ang_trans_x < MAX_ANGULO_ROT) {
+		if (art_1.ang_trans_x < MAX_ANGULO_ROT_ART_1) {
 			art_1.ang_trans_x++;
 		}
 	}
 	
 	/// brazo a izquierda
 	if (key == GLFW_KEY_LEFT) {//flechita izquierda
-		if (art_1.ang_trans_x > -MAX_ANGULO_ROT) {
+		if (art_1.ang_trans_x > -MAX_ANGULO_ROT_ART_1) {
 			art_1.ang_trans_x--;
 		}
 	}
 	
 	//segunda articulacion
 		
-	/// subir brazo
+	/// adelante brazo
 	if (key == GLFW_KEY_T) {//flechira arriba
-		if (art_2.ang_trans_z < MAX_ANGULO_ROT) {
+		if (art_2.ang_trans_z < MAX_ANGULO_ROT_ART_2) {
 			art_2.ang_trans_z++;
 		}
 	}
 
-	/// bajar brazo
+	/// atras brazo
 	if (key == GLFW_KEY_G) {//flechita abajo
-		if (art_2.ang_trans_z > -MAX_ANGULO_ROT) {
+		if (art_2.ang_trans_z > -MAX_ANGULO_ROT_ART_2) {
 			art_2.ang_trans_z--;
 		}
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_H) {//flechita derecha
-		if (art_2.ang_trans_x < MAX_ANGULO_ROT) {
+		if (art_2.ang_trans_x < MAX_ANGULO_ROT_ART_2) {
 			art_2.ang_trans_x++;
 		}
 	}
 
 	/// brazo a izquierda
 	if (key == GLFW_KEY_F) {//flechita izquierda
-		if (art_2.ang_trans_x < -MAX_ANGULO_ROT) {
-			art_2.ang_trans_x++;
+		if (art_2.ang_trans_x > -MAX_ANGULO_ROT_ART_2) {
+			art_2.ang_trans_x--;
 		}
 	}
 
@@ -646,4 +657,7 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	if (key == GLFW_KEY_3) {//espacio
 		eleccion_camara = 3;
 	}
+
+	cout << "Angulo z art 1: " << art_1.ang_trans_z;
+	cout << " Angulo x art 1: " << art_1.ang_trans_x << endl;
 }
