@@ -42,6 +42,9 @@ GLuint VAOCuadrado;
 GLuint VAOCubo;
 GLuint VAOEsfera;
 
+float w = 800;
+float h = 800;
+
 // Vertex Buffer Object
 GLuint VBO;
 
@@ -629,4 +632,11 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	if (key == GLFW_KEY_3) {//espacio
 		eleccion_camara = 3;
 	}
+}
+
+void camara() {
+
+	//primero configuramos el viewport
+	
+	glViewport(0,0,SCR)
 }
