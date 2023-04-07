@@ -28,11 +28,7 @@ void processInput(GLFWwindow* window);
 // extern GLuint setShaders(const char* nVertx, const char* nFrag);
 GLuint shaderProgram;
 GLfloat angulo = 0;
-
-
-
-
-
+int eleccion_camara = 2; //Por defecto va a ser uno que llama a la camara exterior
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -419,6 +415,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	
+	glfwSetKeyCallback(window, keyCallback);
 	openGlInit();
 
 	// Genera el shader program a partir de los archivos
@@ -505,4 +502,130 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// make sure the viewport matches the new window dimensions; note that width and 
 	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods) {
+
+	//codigo asci de las teclas que estamos pulsando
+	std::cout << key << std::endl;
+
+
+
+	//subir y bajar la camara
+	//k y l para subir y bajar
+	
+	/// subir camara
+	if (key == GLFW_KEY_K) {//letra k
+		angulo++;
+	}
+
+	/// bajar camara
+	if (key == GLFW_KEY_L) {//letra l
+		angulo--;
+	}
+	//movimineto de la base
+	
+	
+	/// acelerar
+	if (key == GLFW_KEY_W) {//letra w
+		base_grua.vel += 0.001;
+	}
+
+	/// marcha atras/frenar
+	if (key == GLFW_KEY_X) {//letra x
+		base_grua.vel -= 0.001;
+	}
+
+	/// derecha
+	if (key == GLFW_KEY_D) {//letra d
+		base_grua.ang_trans_x++;
+	}
+
+	/// izquierda
+	if (key == GLFW_KEY_A) {//letra a
+		base_grua.ang_trans_x--;
+	}
+	
+	//espacio para freno de mano
+	/// marcha atras/frenar
+	if (key == GLFW_KEY_SPACE) {//espacio
+		base_grua.vel=0;
+	}
+	
+	//primera articulacion
+	
+	/// subir brazo
+	if (key == GLFW_KEY_UP) {//flechira arriba
+		if (art_1.ang_trans_z < 90) {
+			art_1.ang_trans_z++;
+		}
+	}
+
+	/// bajar brazo
+	if (key == GLFW_KEY_DOWN) {//flechita abajo
+		if (art_1.ang_trans_z < -90) {
+			art_1.ang_trans_z--;
+		}
+	}
+
+	/// brazo a derecha
+	if (key == GLFW_KEY_RIGHT) {//flechita derecha
+		if (art_1.ang_trans_x < 90) {
+			art_1.ang_trans_x++;
+		}
+	}
+	
+	/// brazo a izquierda
+	if (key == GLFW_KEY_LEFT) {//flechita izquierda
+		if (art_1.ang_trans_x < -90) {
+			art_1.ang_trans_x++;
+		}
+	}
+	
+	//segunda articulacion
+		
+	/// subir brazo
+	if (key == GLFW_KEY_T) {//flechira arriba
+		if (art_2.ang_trans_z < 90) {
+			art_2.ang_trans_z++;
+		}
+	}
+
+	/// bajar brazo
+	if (key == GLFW_KEY_G) {//flechita abajo
+		if (art_2.ang_trans_z < -90) {
+			art_2.ang_trans_z--;
+		}
+	}
+
+	/// brazo a derecha
+	if (key == GLFW_KEY_H) {//flechita derecha
+		if (art_2.ang_trans_x < 90) {
+			art_2.ang_trans_x++;
+		}
+	}
+
+	/// brazo a izquierda
+	if (key == GLFW_KEY_F) {//flechita izquierda
+		if (art_2.ang_trans_x < -90) {
+			art_2.ang_trans_x++;
+		}
+	}
+
+	//cambio entre las camaras de la grua
+	
+	/// primera persona
+	if (key == GLFW_KEY_1) {//espacio
+		 eleccion_camara= 1;
+	}
+
+	/// camara exterior persona
+	if (key == GLFW_KEY_2) {//espacio
+		eleccion_camara = 2;
+	}
+
+	/// tercera persona
+	if (key == GLFW_KEY_3) {//espacio
+		eleccion_camara = 3;
+	}
 }
