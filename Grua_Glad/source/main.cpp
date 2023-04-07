@@ -28,11 +28,7 @@ void processInput(GLFWwindow* window);
 // extern GLuint setShaders(const char* nVertx, const char* nFrag);
 GLuint shaderProgram;
 GLfloat angulo = 0;
-
-
-
-
-
+int eleccion_camara = 2; //Por defecto va a ser uno que llama a la camara exterior
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -589,5 +585,22 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 		if (art_2.ang_trans_x < -90) {
 			art_2.ang_trans_x++;
 		}
+	}
+
+	//cambio entre las camaras de la grua
+	
+	/// primera persona
+	if (key == GLFW_KEY_1) {//espacio
+		 eleccion_camara= 1;
+	}
+
+	/// camara exterior persona
+	if (key == GLFW_KEY_2) {//espacio
+		eleccion_camara = 2;
+	}
+
+	/// tercera persona
+	if (key == GLFW_KEY_3) {//espacio
+		eleccion_camara = 3;
 	}
 }
