@@ -20,7 +20,6 @@
 
 #include <iostream>
 
-#define A_RADIANES M_PI / 180
 
 using namespace std;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -62,24 +61,25 @@ typedef struct {
 	GLfloat sx, sy, sz;					// Escalado del objeto (size)
 	GLfloat ang_trans_x, ang_trans_z;	// Angulos de translacion sobre los ejes
 	GLuint render;						// VAO
-
+	GLfloat vel;						// Velocidad
+	GLuint num_vertices;				// Numero de vertices de la figura
 } objeto;
 
 //					{ px, py, pz, sx, sy, sz, ang_x, ang_z, render }
 // Base de la Grua (rectangulo)
-objeto base_grua =	{ 0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 0.f, 0.f,  0 };
+objeto base_grua =	{ 0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 0.f, 0.f, 0, 0, 36 };
 
 // Punto de articulacion 1 (esfera)
-objeto art_1 =		{ 0.f, 0.f, 0.10f, 0.7f, 0.7f, 0.7f, 0.f, 0.f,  0 };
+objeto art_1 =		{ 0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 0.f, 0.f, 0, 0, 1080 };
 
 // Brazo 1 de la grua (rectangulo)
-objeto brazo_1 =	{ 0.f, 0.f, 0.10f, 0.5f, 0.5f, 0.3f, 0.f, 0.f,  0 };
+objeto brazo_1 =	{ 0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, 0, 0, 36 };
 
 // Punto de articulacion 2 (esfera)
-objeto art_2 =		{ 0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 0.f, 0.f,  0 };
+objeto art_2 =		{ 0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 0.f, 0.f, 0, 0, 1080 };
 
 // Brazo 2 de la grua (rectangulo)
-objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f,  0 };
+objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, 0, 0, 36 };
 
 /// FIN DEFINICION PARTES DE LA GRUA
 
@@ -249,7 +249,7 @@ void openGlInit() {
 
 // TODO: mirar lo de la trama
 void display_suelo(GLuint transform_loc) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	glm::mat4 transform;
 
@@ -264,7 +264,7 @@ void display_suelo(GLuint transform_loc) {
 			transform = glm::mat4(); // Matriz Identidad
 
 			// Rota cada uno de los cuadrados antes de colocarlos
-			transform = glm::rotate(transform, (GLfloat)(angulo * A_RADIANES), glm::vec3(1.0f, 0.f, 0.f));
+			transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
 
 			// Los colocamos en su posicion
 			transform = glm::translate(transform, glm::vec3(x, y, 0.f));
@@ -368,14 +368,14 @@ int main(int argc, char** argv) {
 		display_suelo(transform_loc);
 		/// FIN SUELO
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		
 		/// Dibujar Base Grua (CUBO)
-		// Definimos matrices de transformacion
-		glm::mat4 transform, temp;
+		// Declaramos e inicializamos matrices de transformacion
+		glm::mat4 transform = glm::mat4(), temp = glm::mat4();
 
 		// Rota cada uno de los cuadrados antes de colocarlos
-		transform = glm::rotate(transform, (GLfloat)(angulo * A_RADIANES), glm::vec3(1.0f, 0.f, 0.f));
+		transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
 
 		// La colocamos en su posicion
 		transform = glm::translate(transform, glm::vec3(base_grua.px, base_grua.py, base_grua.pz));
@@ -397,25 +397,50 @@ int main(int argc, char** argv) {
 		glDrawArrays(GL_TRIANGLES, 0, 12);
 
 
-		// NI PUTA IDEA CHO
+		/// DIBUJAR EJES
 		//glBindVertexArray(VAO);
 		//glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, 0);
 		
 		/// FIN Dibujar CUBO
 
-		//glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
+		/// NOSE
 		// Tipo de array, algo, numero de vertices 
 		//glDrawArrays(GL_LINES, 0, 900);
-
 		//glBindVertexArray(0); // no need to unbind it every time 
-
-
-		// ESto no funciona
-		// dibujo los ejes
-		// dibujaCuadrado(); // no funciona asi
-
+		/// FIN NOSE
 		
+		/// ARTICULACION 1: ESFERA
+		
+		// Cargamos la identidad
+		transform = glm::mat4(); 
+
+		// Cargamos posicion y localizacion de base
+		transform = temp; 
+
+		// Trasladamos a su posicion
+		transform = glm::translate(transform, glm::vec3(art_1.px, art_1.py, art_1.pz)); 
+
+		// Rotamos articulacion en el eje x
+		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
+
+		// Rotamos articulacion en el eje z
+		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
+
+		// Guardamos posicion y rotacion de la articulacion
+		temp = transform;
+
+		// Escalamos tamaño de la articulacion
+		transform = glm::scale(transform, glm::vec3(art_1.sx, art_1.sy, art_1.sz));
+
+		// Pasamos al shader
+		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		glBindVertexArray(VAOEsfera);
+		glDrawArrays(GL_TRIANGLES, 0, 1080);
+		/// FIN ART 1: ESFERA
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
 
