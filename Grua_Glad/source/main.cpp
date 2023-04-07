@@ -20,6 +20,8 @@
 
 #include <iostream>
 
+#define MAX_ANGULO_ROT 85
+
 
 using namespace std;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -27,7 +29,7 @@ void processInput(GLFWwindow* window);
 
 // extern GLuint setShaders(const char* nVertx, const char* nFrag);
 GLuint shaderProgram;
-GLfloat angulo = 0;
+GLfloat angulo_camara = 0;
 int eleccion_camara = 2; //Por defecto va a ser uno que llama a la camara exterior
 
 // settings
@@ -85,10 +87,10 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 void cargar_ejes() {
 	GLuint VBO, EBO;
 	GLfloat vertices[] = {
-		0.0f, 0.0f, 0.0f, 1.f, 1.f, 1.f,	// Punto Origen 0
-		0.5f, 0.0f, 0.0f, 1.f, 0.0f, 0.0f,	// Coord X 
-		0.0f, 0.5f, 0.0f, 1.f, 0.0f, 0.0f,	// Coord Y 
-		0.0f, 0.0f, 0.5f, 1.f, 0.0f, 0.0f,	// Coord Z 
+		0.0f, 0.0f, 0.0f, 0.f, 0.f, 0.f,	// Punto Origen 0
+		0.5f, 0.0f, 0.0f, 1.f, .0f, 0.0f,	// Coord X 
+		0.0f, 0.5f, 0.0f, 0.f, 1.0f, 0.0f,	// Coord Y 
+		0.0f, 0.0f, 0.5f, 0.f, 0.0f, 1.0f,	// Coord Z 
 		0.5f, 0.5f, 0.5f, 1.f, 1.f, 1.f		// Diagonal
 	};
 
@@ -277,8 +279,8 @@ void openGlInit() {
 	glClearDepth(1.0f); //Valor z-buffer
 	glClearColor(0.7265625f, 0.7421875f, 1.0f, 1.0f);  // valor limpieza buffer color
 	glEnable(GL_DEPTH_TEST); // z-buffer
-	glEnable(GL_CULL_FACE); //ocultacion caras back
-	glCullFace(GL_BACK);
+	//glEnable(GL_CULL_FACE); //ocultacion caras back
+	//glCullFace(GL_BACK);
 }
 
 
@@ -298,7 +300,7 @@ void display_suelo(GLuint transform_loc) {
 			transform = glm::mat4(); // Matriz Identidad
 
 			// Rota cada uno de los cuadrados antes de colocarlos
-			transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
+			transform = glm::rotate(transform, glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
 
 			// Los colocamos en su posicion
 			transform = glm::translate(transform, glm::vec3(x, y, 0.f));
@@ -329,20 +331,25 @@ void _construir_partes_grua(glm::mat4* base, objeto obj, GLuint matrix_loc, bool
 	// Si es la base de la grau
 	if (isBase) {
 		// Rota la base con respecto a la camara
-		transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
+		transform = glm::rotate(transform, glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
 	}
 	
 	// La colocamos en su posicion
 	transform = glm::translate(transform, glm::vec3(obj.px, obj.py, obj.pz));
 
-	// Si son las articulaciones y brazos
-	if (!isBase) {
-		// Rotamos articulacion en el eje x
-		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
-
-		// Rotamos articulacion en el eje z
-		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
+	
+	if (isBase) {
+		// Rotamos en el eje z
+		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(0.f, 0.f, 1.f));
 	}
+	else {
+		// Rotamos articualcion en el eje x
+		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
+
+		// Rotamos articulacion en el eje y
+		transform = glm::rotate(transform, glm::radians(obj.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
+	}
+
 
 	// Guardamos esta matriz de posicion y rotacion
 	// Para usarla como base en las siguientes partes de la grua
@@ -374,6 +381,10 @@ void grua(GLuint matrix_loc) {
 	_construir_partes_grua(&mat_base, brazo_2, matrix_loc, FALSE);
 }
 
+void actualizar_pos() {
+	base_grua.px += base_grua.vel * cos(glm::radians(base_grua.ang_trans_x));
+	base_grua.py += base_grua.vel * sin(glm::radians(base_grua.ang_trans_x));
+}
 
 
 int main(int argc, char** argv) {
@@ -435,6 +446,11 @@ int main(int argc, char** argv) {
 
 	// Obtenemos la localizacion de la matriz en el shader
 	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
+	GLuint view_loc = glGetUniformLocation(shaderProgram, "view");
+	GLuint projection_loc = glGetUniformLocation(shaderProgram, "projection");
+
+	glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
+	glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
 
 
 	///MAIN LOOP
@@ -453,19 +469,20 @@ int main(int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		/// SUELO
-		// display_suelo(transform_loc);
+		display_suelo(transform_loc);
 		/// FIN SUELO
 
 		/// DIBUJAR EJES
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
-		glBindVertexArray(VAOEjes);
-		glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
+		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
+		// glBindVertexArray(VAOEjes);
+		// glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
 		/// FIN DIBUJAR EJES
 		
-		/// CONSTRUIR GRUA
-		//grua(transform_loc);
-		/// FIN CONSTRUIR GRUA
+		/// GRUA
+		actualizar_pos();
+		grua(transform_loc);
+		/// GRUA
 		
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -517,24 +534,24 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	
 	/// subir camara
 	if (key == GLFW_KEY_K) {//letra k
-		angulo++;
+		angulo_camara++;
 	}
 
 	/// bajar camara
 	if (key == GLFW_KEY_L) {//letra l
-		angulo--;
+		angulo_camara--;
 	}
 	//movimineto de la base
 	
 	
 	/// acelerar
 	if (key == GLFW_KEY_W) {//letra w
-		base_grua.vel += 0.001;
+		base_grua.vel += 0.001f;
 	}
 
 	/// marcha atras/frenar
 	if (key == GLFW_KEY_X) {//letra x
-		base_grua.vel -= 0.001;
+		base_grua.vel -= 0.001f;
 	}
 
 	/// derecha
@@ -557,29 +574,29 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	
 	/// subir brazo
 	if (key == GLFW_KEY_UP) {//flechira arriba
-		if (art_1.ang_trans_z < 90) {
+		if (art_1.ang_trans_z < MAX_ANGULO_ROT) {
 			art_1.ang_trans_z++;
 		}
 	}
 
 	/// bajar brazo
 	if (key == GLFW_KEY_DOWN) {//flechita abajo
-		if (art_1.ang_trans_z < -90) {
+		if (art_1.ang_trans_z > -MAX_ANGULO_ROT) {
 			art_1.ang_trans_z--;
 		}
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_RIGHT) {//flechita derecha
-		if (art_1.ang_trans_x < 90) {
+		if (art_1.ang_trans_x < MAX_ANGULO_ROT) {
 			art_1.ang_trans_x++;
 		}
 	}
 	
 	/// brazo a izquierda
 	if (key == GLFW_KEY_LEFT) {//flechita izquierda
-		if (art_1.ang_trans_x < -90) {
-			art_1.ang_trans_x++;
+		if (art_1.ang_trans_x > -MAX_ANGULO_ROT) {
+			art_1.ang_trans_x--;
 		}
 	}
 	
@@ -587,28 +604,28 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 		
 	/// subir brazo
 	if (key == GLFW_KEY_T) {//flechira arriba
-		if (art_2.ang_trans_z < 90) {
+		if (art_2.ang_trans_z < MAX_ANGULO_ROT) {
 			art_2.ang_trans_z++;
 		}
 	}
 
 	/// bajar brazo
 	if (key == GLFW_KEY_G) {//flechita abajo
-		if (art_2.ang_trans_z < -90) {
+		if (art_2.ang_trans_z > -MAX_ANGULO_ROT) {
 			art_2.ang_trans_z--;
 		}
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_H) {//flechita derecha
-		if (art_2.ang_trans_x < 90) {
+		if (art_2.ang_trans_x < MAX_ANGULO_ROT) {
 			art_2.ang_trans_x++;
 		}
 	}
 
 	/// brazo a izquierda
 	if (key == GLFW_KEY_F) {//flechita izquierda
-		if (art_2.ang_trans_x < -90) {
+		if (art_2.ang_trans_x < -MAX_ANGULO_ROT) {
 			art_2.ang_trans_x++;
 		}
 	}
