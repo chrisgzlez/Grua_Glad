@@ -416,6 +416,7 @@ int main(int argc, char** argv) {
 	}
 	
 	glfwSetKeyCallback(window, keyCallback);
+
 	openGlInit();
 
 	// Genera el shader program a partir de los archivos
