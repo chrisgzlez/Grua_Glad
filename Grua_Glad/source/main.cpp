@@ -41,7 +41,7 @@ const unsigned int SCR_HEIGHT = 600;
 // unsigned int VBO, VAO, EBO;
 
 // Vertex Array Object
-GLuint VAO;
+GLuint VAOEjes;
 GLuint VAOCuadrado;
 GLuint VAOCubo;
 GLuint VAOEsfera;
@@ -60,43 +60,91 @@ typedef struct {
 	GLfloat px, py, pz;					// Posiciones x, y, z
 	GLfloat sx, sy, sz;					// Escalado del objeto (size)
 	GLfloat ang_trans_x, ang_trans_z;	// Angulos de translacion sobre los ejes
-	GLuint render;						// VAO
+	GLuint *render;						// VAO
 	GLfloat vel;						// Velocidad
 	GLuint num_vertices;				// Numero de vertices de la figura
 } objeto;
 
 //					{ px, py, pz, sx, sy, sz, ang_x, ang_z, render }
 // Base de la Grua (rectangulo)
-objeto base_grua =	{ 0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 0.f, 0.f, 0, 0, 36 };
+objeto base_grua =	{ 0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 0.f, 0.f, &VAOCubo, 0, 36 };
 
 // Punto de articulacion 1 (esfera)
-objeto art_1 =		{ 0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 0.f, 0.f, 0, 0, 1080 };
+objeto art_1 =		{ 0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 0.f, 0.f, &VAOEsfera, 0, 1080 };
 
 // Brazo 1 de la grua (rectangulo)
-objeto brazo_1 =	{ 0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, 0, 0, 36 };
+objeto brazo_1 =	{ 0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, &VAOCubo, 0, 36 };
 
 // Punto de articulacion 2 (esfera)
-objeto art_2 =		{ 0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 0.f, 0.f, 0, 0, 1080 };
+objeto art_2 =		{ 0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 0.f, 0.f, &VAOEsfera, 0, 1080 };
 
 // Brazo 2 de la grua (rectangulo)
-objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, 0, 0, 36 };
+objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, &VAOCubo, 0, 36 };
 
 /// FIN DEFINICION PARTES DE LA GRUA
 
 /// TODO: Implementar
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
 
-void cargar_esfera() {
+void cargar_ejes() {
 	GLuint VBO, EBO;
+	GLfloat vertices[] = {
+		0.0f, 0.0f, 0.0f, 1.f, 1.f, 1.f,	// Punto Origen 0
+		0.5f, 0.0f, 0.0f, 1.f, 0.0f, 0.0f,	// Coord X 
+		0.0f, 0.5f, 0.0f, 1.f, 0.0f, 0.0f,	// Coord Y 
+		0.0f, 0.0f, 0.5f, 1.f, 0.0f, 0.0f,	// Coord Z 
+		0.5f, 0.5f, 0.5f, 1.f, 1.f, 1.f		// Diagonal
+	};
+
+	GLuint indices[] = {
+		0, 1,	// Eje x
+		0, 2,	// Eje y
+		0, 3,	// Eje z
+		0, 4	// Diagonal
+	};
+	// Creamos buffers y array
+	glGenVertexArrays(1, &VAOEjes);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	// Bind VAO
+	glBindVertexArray(VAOEjes);
+
+	// Lo trae al contexto actual. Lo convierte en el objeto actual
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// Guardamos los vertices en el VBO
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Traemos al contexto principal el EBO
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	// Cargamos los elementos en el EBO
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Vertices
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Colores
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &EBO);
+
+
+}
+
+void cargar_esfera() {
+	GLuint VBO;
 
 	// Creamos el array del VAO
 	glGenVertexArrays(1, &VAOEsfera);
 
 	// Creaa el buffer del objeto
 	glGenBuffers(1, &VBO);
-
-	// NI Idea
-	glGenBuffers(1, &EBO);
 
 	// bind the Vertex Array Object first.
 	// Lo convertimos en el VAO actual
@@ -110,8 +158,8 @@ void cargar_esfera() {
 
 	/// CARGAR EN VAO
 	// Comunica con el shader
-	// Primero: posicion del VAO donde metemos los vertices.
-	// Segundo: Numero de vertices (3)
+	// Primero: layout del shader.
+	// Segundo: Numero de vertices (3, x, y, z)
 	// Tercero: Tipo de dato
 	// Cuarto: Suda
 	// Quinto: step entre vertices
@@ -134,21 +182,17 @@ void cargar_esfera() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
 }
 
 
 void cargar_cubo() {
-	GLuint VBO, EBO;
+	GLuint VBO;
 
 	// Creamos el array del VAO
 	glGenVertexArrays(1, &VAOCubo);
 
 	// Creaa el buffer del objeto
 	glGenBuffers(1, &VBO);
-
-	// NI Idea
-	glGenBuffers(1, &EBO);
 
 	// bind the Vertex Array Object first.
 	// Lo convertimos en el VAO actual
@@ -162,8 +206,8 @@ void cargar_cubo() {
 
 	/// CARGAR EN VAO
 	// Comunica con el shader
-	// Primero: posicion del VAO donde metemos los vertices.
-	// Segundo: Numero de vertices (3)
+	// Primero: layout del shader.
+	// Segundo: Numero de vertices (3, x, y, z)
 	// Tercero: Tipo de dato
 	// Cuarto: Suda
 	// Quinto: step entre vertices
@@ -183,12 +227,11 @@ void cargar_cubo() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
 }
 
 
 void cargar_cuadrado() {
-	GLuint VBO, EBO;
+	GLuint VBO;
 
 	// Creamos el array del VAO
 	glGenVertexArrays(1, &VAOCuadrado);
@@ -196,8 +239,6 @@ void cargar_cuadrado() {
 	// Creaa el buffer del objeto
 	glGenBuffers(1, &VBO);
 
-	// NI Idea
-	glGenBuffers(1, &EBO);
 
 	// bind the Vertex Array Object first.
 	// Lo convertimos en el VAO actual
@@ -211,8 +252,8 @@ void cargar_cuadrado() {
 
 	/// CARGAR EN VAO
 	// Comunica con el shader
-	// Primero: posicion del VAO donde metemos los vertices.
-	// Segundo: Numero de vertices (3)
+	// Primero: layout del shader.
+	// Segundo: Numero de vertices (3, x, y, z)
 	// Tercero: Tipo de dato
 	// Cuarto: Suda
 	// Quinto: step entre vertices
@@ -232,8 +273,6 @@ void cargar_cuadrado() {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
-
 }
 
 void openGlInit() {
@@ -247,9 +286,8 @@ void openGlInit() {
 }
 
 
-// TODO: mirar lo de la trama
 void display_suelo(GLuint transform_loc) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glm::mat4 transform;
 
@@ -284,6 +322,63 @@ void display_suelo(GLuint transform_loc) {
 
 	}
 }
+
+void _construir_partes_grua(glm::mat4* base, objeto obj, GLuint matrix_loc, bool isBase) {
+	// Declaramos e Inicializamos matriz de transformacion
+	glm::mat4 transform = glm::mat4();
+
+	// Cargamos la matriz base
+	transform = *base;
+
+	// Si es la base de la grau
+	if (isBase) {
+		// Rota la base con respecto a la camara
+		transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
+	}
+	
+	// La colocamos en su posicion
+	transform = glm::translate(transform, glm::vec3(obj.px, obj.py, obj.pz));
+
+	// Si son las articulaciones y brazos
+	if (!isBase) {
+		// Rotamos articulacion en el eje x
+		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
+
+		// Rotamos articulacion en el eje z
+		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
+	}
+
+	// Guardamos esta matriz de posicion y rotacion
+	// Para usarla como base en las siguientes partes de la grua
+	*base = transform;
+
+	// Tamaño de la base de la grua
+	transform = glm::scale(transform, glm::vec3(obj.sx, obj.sy, obj.sz));
+
+	// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
+	glUniformMatrix4fv(matrix_loc, 1, GL_FALSE, glm::value_ptr(transform));
+
+	// Cargamos el vao de la figura del cuadrado en el contexto principal
+	glBindVertexArray(*obj.render);
+
+	// Dibujamos los cuadrados
+	glDrawArrays(GL_TRIANGLES, 0, obj.num_vertices);
+}
+
+
+void grua(GLuint matrix_loc) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	// Inicializamos matrices
+	glm::mat4 mat_base = glm::mat4();
+	_construir_partes_grua(&mat_base, base_grua, matrix_loc, TRUE);
+	_construir_partes_grua(&mat_base, art_1, matrix_loc, FALSE);
+	_construir_partes_grua(&mat_base, brazo_1, matrix_loc, FALSE);
+	_construir_partes_grua(&mat_base, art_2, matrix_loc, FALSE);
+	_construir_partes_grua(&mat_base, brazo_2, matrix_loc, FALSE);
+}
+
+
 
 int main(int argc, char** argv) {
 	// glfw: initialize and configure
@@ -333,19 +428,18 @@ int main(int argc, char** argv) {
 	cargar_cuadrado();
 	cargar_cubo();
 	cargar_esfera();
+	cargar_ejes();
 
 	/// FIN CARGAR figuras en el VAO
 
 	// Activamos o shader
 	glUseProgram(shaderProgram);
 
+	// Obtenemos la localizacion de la matriz en el shader
 	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
 
 
-	// uncomment this call to draw in wireframe polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	// Lazo de la ventana mientras no la cierre
+	///MAIN LOOP
 	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
@@ -354,9 +448,6 @@ int main(int argc, char** argv) {
 		// -----
 		processInput(window);
 
-		// render
-		// ------
-
 		// Establecemos el color de limpieza del buffer
 		glClearColor(0.1015625f, 0.15234375f, 0.30859375, 1.0f);
 
@@ -364,86 +455,20 @@ int main(int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		/// SUELO
-		// DESCOMENTAR
-		display_suelo(transform_loc);
+		// display_suelo(transform_loc);
 		/// FIN SUELO
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		
-		/// Dibujar Base Grua (CUBO)
-		// Declaramos e inicializamos matrices de transformacion
-		glm::mat4 transform = glm::mat4(), temp = glm::mat4();
-
-		// Rota cada uno de los cuadrados antes de colocarlos
-		transform = glm::rotate(transform, glm::radians(angulo), glm::vec3(1.0f, 0.f, 0.f));
-
-		// La colocamos en su posicion
-		transform = glm::translate(transform, glm::vec3(base_grua.px, base_grua.py, base_grua.pz));
-
-		// Guardamos esta matriz de posicion y rotacion
-		// Para usarla como base en las siguientes partes de la grua
-		temp = transform;
-
-		// Tamaño de la base de la grua
-		transform = glm::scale(transform, glm::vec3(base_grua.sx, base_grua.sy, base_grua.sz));
-
-		// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
-		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-
-		// Cargamos el vao de la figura del cuadrado en el contexto principal
-		glBindVertexArray(VAOCubo);
-
-		// Dibujamos los cuadrados
-		glDrawArrays(GL_TRIANGLES, 0, 12);
-
-
 		/// DIBUJAR EJES
-		//glBindVertexArray(VAO);
-		//glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, 0);
-		
-		/// FIN Dibujar CUBO
-
-
-		/// NOSE
-		// Tipo de array, algo, numero de vertices 
-		//glDrawArrays(GL_LINES, 0, 900);
-		//glBindVertexArray(0); // no need to unbind it every time 
-		/// FIN NOSE
-		
-		/// ARTICULACION 1: ESFERA
-		
-		// Cargamos la identidad
-		transform = glm::mat4(); 
-
-		// Cargamos posicion y localizacion de base
-		transform = temp; 
-
-		// Trasladamos a su posicion
-		transform = glm::translate(transform, glm::vec3(art_1.px, art_1.py, art_1.pz)); 
-
-		// Rotamos articulacion en el eje x
-		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
-
-		// Rotamos articulacion en el eje z
-		transform = glm::rotate(transform, glm::radians(art_1.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
-
-		// Guardamos posicion y rotacion de la articulacion
-		temp = transform;
-
-		// Escalamos tamaño de la articulacion
-		transform = glm::scale(transform, glm::vec3(art_1.sx, art_1.sy, art_1.sz));
-
-		// Pasamos al shader
-		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		glBindVertexArray(VAOEsfera);
-		glDrawArrays(GL_TRIANGLES, 0, 1080);
-		/// FIN ART 1: ESFERA
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(glm::mat4()));
+		glBindVertexArray(VAOEjes);
+		glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
+		/// FIN DIBUJAR EJES
 		
-
+		/// CONSTRUIR GRUA
+		//grua(transform_loc);
+		/// FIN CONSTRUIR GRUA
+		
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -454,7 +479,7 @@ int main(int argc, char** argv) {
 	/// Liberar Memoria
 	// optional: de-allocate all resources once they've outlived their purpose:
 	// ------------------------------------------------------------------------
-	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &VAOEjes);
 	glDeleteVertexArrays(1, &VAOCuadrado);
 
 
