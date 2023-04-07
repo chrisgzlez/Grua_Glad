@@ -324,6 +324,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	
+	glfwSetKeyCallback(window, keyCallback);
 	openGlInit();
 
 	// Genera el shader program a partir de los archivos
@@ -455,4 +456,55 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// make sure the viewport matches the new window dimensions; note that width and 
 	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods) {
+
+	//codigo asci de las teclas que estamos pulsando
+	std::cout << key << std::endl;
+
+
+
+	//subir y bajar la camara
+	//k y l para subir y bajar
+	
+	/// subir camara
+	if (key == GLFW_KEY_K) {//letra k
+		angulo++;
+	}
+
+	/// bajar camara
+	if (key == GLFW_KEY_L) {//letra l
+		angulo--;
+	}
+	//movimineto de la base
+	
+	
+	/// acelerar
+	if (key == GLFW_KEY_W) {//letra
+		angulo--;
+	}
+
+	/// marcha atras/frenar
+	if (key == GLFW_KEY_X) {//letra
+		angulo--;
+	}
+	
+	
+	
+
+	//espacio para freno de mano
+	
+
+
+
+
+
+	//primera articulacion
+	
+
+
+
+
+	//segunda articulacion
 }
