@@ -20,18 +20,19 @@
 
 #include <iostream>
 
-#define MAX_ANGULO_ROT_ART_2 90
-#define MAX_ANGULO_ROT_ART_1 70
+#include <Grua.h>
+#include <Camara.h>
+
 #define SIZE_SUELO 4
 
-
 using namespace std;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
 // extern GLuint setShaders(const char* nVertx, const char* nFrag);
 GLuint shaderProgram;
-GLfloat angulo_camara = 0;
+GLfloat angulo_suelo = 0;
 int eleccion_camara = 2; //Por defecto va a ser uno que llama a la camara exterior
 
 // settings
@@ -52,43 +53,12 @@ GLsizei h = SCR_HEIGHT;
 // Vertex Buffer Object
 GLuint VBO;
 
-// 
-// GLuint EBO
+Grua grua1;
 
-
-//Sphere sphere1(1.0f, 18, 9);
-
-/// DEFINICION DE LAS PARTES DE LA GRUA
-typedef struct {
-	GLfloat px, py, pz;					// Posiciones x, y, z
-	GLfloat sx, sy, sz;					// Escalado del objeto (size)
-	GLfloat ang_trans_x, ang_trans_z;	// Angulos de translacion sobre los ejes
-	GLuint *render;						// VAO
-	GLfloat vel;						// Velocidad
-	GLuint num_vertices;				// Numero de vertices de la figura
-} objeto;
-
-//					{ px, py, pz, sx, sy, sz, ang_x, ang_z, render }
-// Base de la Grua (rectangulo)
-objeto base_grua =	{ 0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 0.f, 0.f, &VAOCubo, 0, 36 };
-
-// Punto de articulacion 1 (esfera)
-objeto art_1 =		{ 0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 0.f, 0.f, &VAOEsfera, 0, 1080 };
-
-// Brazo 1 de la grua (rectangulo)
-objeto brazo_1 =	{ 0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, &VAOCubo, 0, 36 };
-
-// Punto de articulacion 2 (esfera)
-objeto art_2 =		{ 0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 0.f, 0.f, &VAOEsfera, 0, 1080 };
-
-// Brazo 2 de la grua (rectangulo)
-objeto brazo_2 =	{ 0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 0.f, 0.f, &VAOCubo, 0, 36 };
-
-/// FIN DEFINICION PARTES DE LA GRUA
-
-/// TODO: Implementar
+// Maneja los inputs
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
 
+/// CARGAR MODELOS 
 void cargar_ejes() {
 	GLuint VBO, EBO;
 	GLfloat vertices[] = {
@@ -187,7 +157,6 @@ void cargar_esfera() {
 	glDeleteBuffers(1, &VBO);
 }
 
-
 void cargar_cubo() {
 	GLuint VBO;
 
@@ -231,7 +200,6 @@ void cargar_cubo() {
 	glBindVertexArray(0);
 	glDeleteBuffers(1, &VBO);
 }
-
 
 void cargar_cuadrado() {
 	GLuint VBO;
@@ -278,24 +246,16 @@ void cargar_cuadrado() {
 	glDeleteBuffers(1, &VBO);
 }
 
-void openGlInit() {
-	//Habilito aqui el depth en vez de arriba para los usuarios de linux y mac mejor arriba
-	//Incializaciones varias
-	glClearDepth(1.0f); //Valor z-buffer
-	glClearColor(0.7265625f, 0.7421875f, 1.0f, 1.0f);  // valor limpieza buffer color
-	glEnable(GL_DEPTH_TEST); // z-buffer
-	//glEnable(GL_CULL_FACE); //ocultacion caras back
-	//glCullFace(GL_BACK);
-}
+/// FIN CARGAR MODELOS
 
-
+// Realiza el display del suelo
 void display_suelo(GLuint transform_loc) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glm::mat4 transform;
 
 	// Posicion de la matriz de transformacion en el shader
-	
+
 
 	float escala_suelo = 10;
 
@@ -305,7 +265,7 @@ void display_suelo(GLuint transform_loc) {
 			transform = glm::mat4(); // Matriz Identidad
 
 			// Rota cada uno de los cuadrados antes de colocarlos
-			transform = glm::rotate(transform, glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
+			transform = glm::rotate(transform, glm::radians(angulo_suelo), glm::vec3(1.0f, 0.f, 0.f));
 
 			// Los colocamos en su posicion
 			transform = glm::translate(transform, glm::vec3(x, y, 0.f));
@@ -326,167 +286,16 @@ void display_suelo(GLuint transform_loc) {
 	}
 }
 
-void _construir_partes_grua(glm::mat4* base, objeto obj, GLuint matrix_loc, bool isBase) {
-	// Declaramos e Inicializamos matriz de transformacion
-	glm::mat4 transform = glm::mat4();
-
-	// Cargamos la matriz base
-	transform = *base;
-
-	// Si es la base de la grau
-	if (isBase) {
-		// Rota la base con respecto a la camara
-		transform = glm::rotate(transform, glm::radians(angulo_camara), glm::vec3(1.0f, 0.f, 0.f));
-	}
-	
-	// La colocamos en su posicion
-	transform = glm::translate(transform, glm::vec3(obj.px, obj.py, obj.pz));
-
-	
-	if (isBase) {
-		// Rotamos en el eje z
-		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(0.f, 0.f, 1.f));
-	}
-	else {
-		// Articulacion
-
-		// Rotamos articualcion en el eje x
-		transform = glm::rotate(transform, glm::radians(obj.ang_trans_x), glm::vec3(1.f, 0.f, 0.f));
-
-		// Rotamos articulacion en el eje y
-		transform = glm::rotate(transform, glm::radians(obj.ang_trans_z), glm::vec3(0.0f, 1.f, 0.f));
-	}
-
-
-	// Guardamos esta matriz de posicion y rotacion
-	// Para usarla como base en las siguientes partes de la grua
-	*base = transform;
-
-	// Tamaño de la base de la grua
-	transform = glm::scale(transform, glm::vec3(obj.sx, obj.sy, obj.sz));
-
-	// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
-	glUniformMatrix4fv(matrix_loc, 1, GL_FALSE, glm::value_ptr(transform));
-
-	// Cargamos el vao de la figura del cuadrado en el contexto principal
-	glBindVertexArray(*obj.render);
-
-	// Dibujamos los cuadrados
-	glDrawArrays(GL_TRIANGLES, 0, obj.num_vertices);
+// Inicializa OpenGL
+void openGlInit() {
+	//Habilito aqui el depth en vez de arriba para los usuarios de linux y mac mejor arriba
+	//Incializaciones varias
+	glClearDepth(1.0f); //Valor z-buffer
+	glClearColor(0.7265625f, 0.7421875f, 1.0f, 1.0f);  // valor limpieza buffer color
+	glEnable(GL_DEPTH_TEST); // z-buffer
+	//glEnable(GL_CULL_FACE); //ocultacion caras back
+	//glCullFace(GL_BACK);
 }
-
-
-void grua(GLuint matrix_loc) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	// Inicializamos matrices
-	glm::mat4 mat_base = glm::mat4();
-	_construir_partes_grua(&mat_base, base_grua, matrix_loc, TRUE);
-	_construir_partes_grua(&mat_base, art_1, matrix_loc, FALSE);
-	_construir_partes_grua(&mat_base, brazo_1, matrix_loc, FALSE);
-	_construir_partes_grua(&mat_base, art_2, matrix_loc, FALSE);
-	_construir_partes_grua(&mat_base, brazo_2, matrix_loc, FALSE);
-}
-
-void actualizar_pos() {
-	base_grua.px += base_grua.vel * cos(glm::radians(base_grua.ang_trans_x));
-	base_grua.py += base_grua.vel * sin(glm::radians(base_grua.ang_trans_x));
-}
-
-void camara() {
-
-	//primero configuramos el viewport
-	glViewport(0, 0, w, h);
-
-	//matriz de view
-	glm::mat4 view;
-	view = glm::mat4();
-
-	//hacemos el lookat para posicionar la camara
-	//la posicionamos en el 0 0 y le damos un poco de altura
-	// miramos al centro de la pantalla
-	// y en el caso de la normal que apunte hacia el eje y
-	view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-	//matriz de proyeccion
-	glm::mat4 projection;
-	projection = glm::mat4();
-
-	//añadimos la perspectiva a la ventana
-	projection = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.01f, 8.0f);
-	unsigned int proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
-	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-
-void tercerapersona(objeto base) {
-	
-	//primero configuramos el viewport
-	
-	glViewport(0, 0, w, h);
-	
-	//matriz de view
-	
-	glm::mat4 view;
-	view = glm::mat4();
-
-	//hacemos el lookat para posicionar la camara detras de la grua
-	//la posicionamos detras de la grua mirando hacia un punto lejano
-	// y en el caso de la normal que apunte hacia el eje y
-	
-	view = glm::lookAt(
-		glm::vec3(base.px - 0.5 * cos(glm::radians(base.ang_trans_x)), base.py - 0.5 * sin(glm::radians(base.ang_trans_x)), base.pz + .4),
-		glm::vec3(base.px + 10 * cos(glm::radians(base.ang_trans_x)), base.py + 10 * sin(glm::radians(base.ang_trans_x)), base.pz),
-		glm::vec3(0.0f, 0.0f, 1.0f));
-
-	GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-	//matriz de proyeccion
-	glm::mat4 projection;
-	projection = glm::mat4();
-
-	//perspectiva
-	projection = glm::perspective(glm::radians(60.0f), (GLfloat)w / (GLfloat)h, 0.01f, 5.0f);
-	GLuint proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
-	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-
-
-}
-
-void primerapersona(objeto base) {
-
-	//primero configuramos el viewport
-
-	glViewport(0, 0, w, h);
-
-	//matriz para la view
-	glm::mat4 view;
-	view = glm::mat4();
-
-	// miramos como si fueramos el conductor de la grua (parte de alante del cubo
-	// miramos un poco mas alejado de ese punto
-	view = glm::lookAt(glm::vec3(base.px, base.py, base.pz + 0.2),
-		glm::vec3(base.px + (1.5 * cos(glm::radians(base.ang_trans_x))), base.py + (1.5 * sin(glm::radians(base.ang_trans_x))), base.pz + 0.2),
-		glm::vec3(0.0f, 0.0f, 1.0f));
-	GLuint viewLoc = glGetUniformLocation(shaderProgram, "view");
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-	//matriz de projeccion
-	glm::mat4 projection;
-	projection = glm::mat4();
-	
-	//perpectiva
-	projection = glm::perspective(glm::radians(60.0f), (float)w / (float)h, 0.1f, 5.0f);
-	GLuint proyectionLoc = glGetUniformLocation(shaderProgram, "projection");
-	glUniformMatrix4fv(proyectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-
-
 
 
 int main(int argc, char** argv) {
@@ -528,6 +337,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 	
+	// Set function to manage inputs
 	glfwSetKeyCallback(window, keyCallback);
 
 	openGlInit();
@@ -540,11 +350,20 @@ int main(int argc, char** argv) {
 	cargar_cubo();
 	cargar_esfera();
 	cargar_ejes();
-
 	/// FIN CARGAR figuras en el VAO
+
+	/// CREAMOS GRUA
+	grua1 = Grua(&angulo_suelo, VAOEsfera, VAOCubo);
+	/// FIN CREAR GRUA
 
 	// Activamos o shader
 	glUseProgram(shaderProgram);
+
+	/// CREAMOS CAMARA
+	Camara camara = Camara(&w, &h, shaderProgram);
+	/// FIN CREAMOS CAMARA
+
+	
 
 	// Obtenemos la localizacion de la matriz en el shader
 	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
@@ -554,10 +373,6 @@ int main(int argc, char** argv) {
 	while (!glfwWindowShouldClose(window))
 	{
 
-		// input
-		// -----
-		processInput(window);
-
 		// Establecemos el color de limpieza del buffer
 		glClearColor(0.1015625f, 0.15234375f, 0.30859375, 1.0f);
 
@@ -566,14 +381,14 @@ int main(int argc, char** argv) {
 
 		//si es 2 camara libre
 		if (eleccion_camara==2) {
-			camara();
+			camara.default_view();
 		}else if(eleccion_camara==1){ //si es 1 es camara en primera persona
-			angulo_camara = 0;
-			primerapersona(base_grua);
+			angulo_suelo = 0;
+			camara.first_person(grua1.position(), grua1.angle());
 			
 		} else if(eleccion_camara==3){ // si es 3 es tercera persona
-			angulo_camara = 0;
-			tercerapersona(base_grua);
+			angulo_suelo = 0;
+			camara.third_person(grua1.position(), grua1.angle());
 		}
 		
 		/// SUELO
@@ -590,9 +405,11 @@ int main(int argc, char** argv) {
 		/// FIN DIBUJAR EJES
 		
 		/// GRUA
-		actualizar_pos();
-		grua(transform_loc);
-		/// GRUA
+		
+		grua1.move();
+		grua1.display(transform_loc);
+		
+		/// FIN GRUA
 		
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -615,14 +432,6 @@ int main(int argc, char** argv) {
 }
 
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-}
-
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -631,10 +440,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	h = height;
 	// make sure the viewport matches the new window dimensions; note that width and 
 	// height will be significantly larger than specified on retina displays.
-	//glViewport(0, 0, width, height);
+	glViewport(0, 0, width, height);
 }
 
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods) {
+	
+	// Cierra la ventana al pulsar esc
+	if (key == GLFW_KEY_ESCAPE) {
+		glfwSetWindowShouldClose(window, true);
+	}
 
 	//subir y bajar la camara
 	//k y l para subir y bajar
@@ -642,17 +456,17 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	if (eleccion_camara == 2){
 		/// subir camara
 		if (key == GLFW_KEY_K) {//letra k
-			angulo_camara++;
-			if (glm::radians(angulo_camara) >= M_2_PI) {
-				angulo_camara -= (GLfloat)M_2_PI;
+			angulo_suelo++;
+			if (glm::radians(angulo_suelo) >= M_2_PI) {
+				angulo_suelo -= (GLfloat)M_2_PI;
 			}
 		}
 
 		/// bajar camara
 		if (key == GLFW_KEY_L) {//letra l
-			angulo_camara--;
-			if (glm::radians(angulo_camara) <= -M_2_PI) {
-				angulo_camara += (GLfloat)M_2_PI;
+			angulo_suelo--;
+			if (glm::radians(angulo_suelo) <= -M_2_PI) {
+				angulo_suelo += (GLfloat)M_2_PI;
 			}
 		}
 	}
@@ -661,104 +475,88 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	
 	/// acelerar
 	if (key == GLFW_KEY_W) {//letra w
-		base_grua.vel += 0.001f;
+		grua1.acelerar();
 	}
 
 	/// marcha atras/frenar
 	if (key == GLFW_KEY_X) {//letra x
-		base_grua.vel -= 0.001f;
+		grua1.frenar();
 	}
 
 	/// derecha
 	if (key == GLFW_KEY_D) {//letra d
-		base_grua.ang_trans_x--;
+		grua1.girar(RIGHT);
 	}
 
 	/// izquierda
 	if (key == GLFW_KEY_A) {//letra a
-		base_grua.ang_trans_x++;
+		grua1.girar(LEFT);
 	}
 	
 	//espacio para freno de mano
 	/// freno de mano
 	if (key == GLFW_KEY_SPACE) {//espacio
-		base_grua.vel=0;
+		grua1.handbrake();
 	}
 	
 	//primera articulacion
 	
 	/// adelante brazo
 	if (key == GLFW_KEY_UP) {//flechira arriba
-		if (art_1.ang_trans_z < MAX_ANGULO_ROT_ART_1) {
-			art_1.ang_trans_z++;
-		}
+		grua1.rotar_art(0, FRONT);
 	}
 
 	/// atras brazo
 	if (key == GLFW_KEY_DOWN) {//flechita abajo
-		if (art_1.ang_trans_z > -MAX_ANGULO_ROT_ART_1) {
-			art_1.ang_trans_z--;
-		}
+		grua1.rotar_art(0, BACK);
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_RIGHT) {//flechita derecha
-		if (art_1.ang_trans_x < MAX_ANGULO_ROT_ART_1) {
-			art_1.ang_trans_x++;
-		}
+		grua1.rotar_art(0, RIGHT);
 	}
 	
 	/// brazo a izquierda
 	if (key == GLFW_KEY_LEFT) {//flechita izquierda
-		if (art_1.ang_trans_x > -MAX_ANGULO_ROT_ART_1) {
-			art_1.ang_trans_x--;
-		}
+		grua1.rotar_art(0, LEFT);
 	}
 	
 	//segunda articulacion
 		
 	/// adelante brazo
 	if (key == GLFW_KEY_T) {//flechira arriba
-		if (art_2.ang_trans_z < MAX_ANGULO_ROT_ART_2) {
-			art_2.ang_trans_z++;
-		}
+		grua1.rotar_art(1, FRONT);
 	}
 
 	/// atras brazo
 	if (key == GLFW_KEY_G) {//flechita abajo
-		if (art_2.ang_trans_z > -MAX_ANGULO_ROT_ART_2) {
-			art_2.ang_trans_z--;
-		}
+		grua1.rotar_art(1, BACK);
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_H) {//flechita derecha
-		if (art_2.ang_trans_x < MAX_ANGULO_ROT_ART_2) {
-			art_2.ang_trans_x++;
-		}
+		grua1.rotar_art(1, RIGHT);
 	}
 
 	/// brazo a izquierda
 	if (key == GLFW_KEY_F) {//flechita izquierda
-		if (art_2.ang_trans_x > -MAX_ANGULO_ROT_ART_2) {
-			art_2.ang_trans_x--;
-		}
+		grua1.rotar_art(1, LEFT);
 	}
 
 	//cambio entre las camaras de la grua
 	
 	/// primera persona
-	if (key == GLFW_KEY_1) {//espacio
+	if (key == GLFW_KEY_1) { // numero 1
 		 eleccion_camara= 1;
 	}
 
 	/// camara exterior persona
-	if (key == GLFW_KEY_2) {//espacio
+	if (key == GLFW_KEY_2) { //numero 2
 		eleccion_camara = 2;
 	}
 
 	/// tercera persona
-	if (key == GLFW_KEY_3) {//espacio
+	if (key == GLFW_KEY_3) { //numero 3
 		eleccion_camara = 3;
 	}
 }

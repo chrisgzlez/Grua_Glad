@@ -137,13 +137,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="glad\glad.c" />
+    <ClCompile Include="source\Camara.cpp" />
+    <ClCompile Include="source\Grua.cpp" />
     <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\Parte.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glad\glad.h" />
+    <ClInclude Include="headers\Camara.h" />
     <ClInclude Include="headers\cuadrado.h" />
     <ClInclude Include="headers\cubo.h" />
     <ClInclude Include="headers\esfera.h" />
+    <ClInclude Include="headers\Grua.h" />
+    <ClInclude Include="headers\Parte.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shader.frag" />
