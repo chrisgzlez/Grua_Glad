@@ -16,7 +16,7 @@
 
 class Camara {
 	private:
-
+		GLfloat angle_x; // Angulo con respecto al eje x
 		GLsizei *view_width, *view_height;		// Viewport Width and Height
 		GLuint shader;							// Shader Program
 
@@ -35,6 +35,12 @@ class Camara {
 
 		// Tercera Persona
 		void third_person(glm::vec3 pos, glm::vec3 angle);
+
+		// Get angle
+		const GLfloat& angle() const;
+
+		// Set angle
+		GLfloat& angle();
 
 };
 

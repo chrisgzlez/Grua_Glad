@@ -141,6 +141,7 @@
     <ClCompile Include="source\Grua.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Parte.cpp" />
+    <ClCompile Include="source\texturas.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="glad\glad.h" />
@@ -150,10 +151,34 @@
     <ClInclude Include="headers\esfera.h" />
     <ClInclude Include="headers\Grua.h" />
     <ClInclude Include="headers\Parte.h" />
+    <ClInclude Include="headers\stb_image.h" />
+    <ClInclude Include="headers\texturas.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\shader.frag" />
     <None Include="resources\shader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\texturas\blue.jpg" />
+    <Image Include="resources\texturas\españa.jpg" />
+    <Image Include="resources\texturas\piscina0.png" />
+    <Image Include="resources\texturas\piscina1.png" />
+    <Image Include="resources\texturas\piscina10.png" />
+    <Image Include="resources\texturas\piscina11.png" />
+    <Image Include="resources\texturas\piscina12.png" />
+    <Image Include="resources\texturas\piscina13.png" />
+    <Image Include="resources\texturas\piscina14.png" />
+    <Image Include="resources\texturas\piscina15.png" />
+    <Image Include="resources\texturas\piscina2.png" />
+    <Image Include="resources\texturas\piscina3.png" />
+    <Image Include="resources\texturas\piscina4.png" />
+    <Image Include="resources\texturas\piscina5.png" />
+    <Image Include="resources\texturas\piscina6.png" />
+    <Image Include="resources\texturas\piscina7.png" />
+    <Image Include="resources\texturas\piscina8.png" />
+    <Image Include="resources\texturas\piscina9.png" />
+    <Image Include="resources\texturas\red.png" />
+    <Image Include="resources\texturas\suelo.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

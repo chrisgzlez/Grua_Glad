@@ -10,27 +10,28 @@ Grua::Grua() {
 
 // Pasarle un const VAO
 // Hacer Clase VAO
-Grua::Grua(GLfloat *angulo_camara, GLuint VAOEsfera, GLuint VAOCubo) {
-	this->angulo_camara = angulo_camara;
-	this->base				= Parte(0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 36, VAOCubo);
-	this->brazos[0].art		= Parte(0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 1080, VAOEsfera);
-	this->brazos[0].brazo	= Parte(0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 36, VAOCubo);
-	this->brazos[1].art		= Parte(0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 1080, VAOEsfera);
-	this->brazos[1].brazo	= Parte(0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 36, VAOCubo);
+Grua::Grua(GLuint VAOEsfera, GLuint VAOCubo) {
+	// this->base				= Parte(0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 36, VAOCubo, "resources\\texturas\\base.png");
+	// this->brazos[0].art		= Parte(0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 1080, VAOEsfera, "resources\\texturas\\art.png");
+	// this->brazos[0].brazo	= Parte(0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 36, VAOCubo, "resources\\texturas\\brazo.png");
+	// this->brazos[1].art		= Parte(0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 1080, VAOEsfera, "resources\\texturas\\art.png");
+	// this->brazos[1].brazo	= Parte(0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 36, VAOCubo, "resources\\texturas\\brazo.png");
+
+	this->base = Parte(0.f, 0.f, 0.15f, 0.3f, 0.2f, 0.2f, 36, VAOCubo, "resources\\texturas\\brazo.png");
+	this->brazos[0].art = Parte(0.f, 0.f, 0.10f, 0.07f, 0.07f, 0.07f, 1080, VAOEsfera, "resources\\texturas\\articulacion.jpg");
+	this->brazos[0].brazo = Parte(0.f, 0.f, 0.10f, 0.05f, 0.05f, 0.3f, 36, VAOCubo, "resources\\texturas\\brazo.png");
+	this->brazos[1].art = Parte(0.f, 0.f, 0.15f, 0.05f, 0.05f, 0.05f, 1080, VAOEsfera, "resources\\texturas\\articulacion.jpg");
+	this->brazos[1].brazo = Parte(0.f, 0.f, 0.11f, 0.05f, 0.05f, 0.3f, 36, VAOCubo, "resources\\texturas\\brazo.png");
+
 }
 
 void Grua::display(GLuint matrix_loc) {
 	
-
-
 	// Establece el tipo de poligono en la visualizacion
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	// Carga la matriz identidad
 	glm::mat4 transform = glm::mat4();
-
-	// Rota la base con respecto a la camara
-	transform = glm::rotate(transform, glm::radians(*this->angulo_camara), EJE_X);
 	
 	this->base.display(&transform, matrix_loc);
 
@@ -39,6 +40,14 @@ void Grua::display(GLuint matrix_loc) {
 		p.art.display(&transform, matrix_loc);
 		p.brazo.display(&transform, matrix_loc);
 	}
+	
+	const float* matrix_values = (const float*)glm::value_ptr(transform);
+
+	// Los 3 ultimos valores de la matriz guardan los valores de la posicion
+	this->_foco.x = (GLfloat)matrix_values[12];
+	this->_foco.y = (GLfloat)matrix_values[13];
+	this->_foco.z = (GLfloat)matrix_values[14];
+	
 }
 
 void Grua::move() {
@@ -72,4 +81,8 @@ const glm::vec3& Grua::position() const {
 
 const glm::vec3& Grua::angle() const {
 	return this->base.angle();
+}
+
+const glm::vec3& Grua::foco() const {
+	return this->_foco;
 }

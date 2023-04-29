@@ -13,12 +13,17 @@
 #include <lecturaShader_0_9.h>
 
 
-// Vertices
+/// Vertices
 #include <cubo.h>
 #include <cuadrado.h>
 #include <esfera.h>
 
+
+/// Para las texturas
+#include <texturas.h>
+
 #include <iostream>
+#include <sstream>
 
 #include <Grua.h>
 #include <Camara.h>
@@ -28,11 +33,9 @@
 using namespace std;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
 
 // extern GLuint setShaders(const char* nVertx, const char* nFrag);
 GLuint shaderProgram;
-GLfloat angulo_suelo = 0;
 int eleccion_camara = 2; //Por defecto va a ser uno que llama a la camara exterior
 
 // settings
@@ -53,7 +56,29 @@ GLsizei h = SCR_HEIGHT;
 // Vertex Buffer Object
 GLuint VBO;
 
-Grua grua1;
+Camara camara;
+Grua grua;
+
+
+GLuint textura_suelo;
+
+typedef struct {
+	GLfloat x, y, z; // Coordenadas
+} punto;
+
+
+punto pview = { 0.0f, 0.0f, 0.0f };
+punto pluz = { 0.0f, 0.0f, 10.0f };
+
+typedef struct {
+	int texture_index;
+	int timer;
+	GLuint textures[16];
+	bool reverse;
+} Piscina;
+
+Piscina piscina;
+
 
 // Maneja los inputs
 void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
@@ -184,14 +209,18 @@ void cargar_cubo() {
 	// Cuarto: Suda
 	// Quinto: step entre vertices
 	// Sexto:: Offset, donde empieza
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)0);
 
 	// Esto lo activa. Le pasamos la posicion del VAO que queremos activar
 	glEnableVertexAttribArray(0);
 
-	// position Color
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+	// position Normal
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
+
+	// position Texture
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
 
 	/// FIN CARGAR EN VAO
 
@@ -229,14 +258,18 @@ void cargar_cuadrado() {
 	// Cuarto: Suda
 	// Quinto: step entre vertices
 	// Sexto:: Offset, donde empieza
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)0);
 
 	// Esto lo activa. Le pasamos la posicion del VAO que queremos activar
 	glEnableVertexAttribArray(0);
 
-	// position Color
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+	// position Normal
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
+
+	// position Texture
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	/// FIN CARGAR EN VAO
 
@@ -246,10 +279,76 @@ void cargar_cuadrado() {
 	glDeleteBuffers(1, &VBO);
 }
 
+void cargar_piscina() {
+	piscina.reverse = false;
+	piscina.texture_index = 0;
+
+	for (int i = 0; i < 16; i++) {
+		stringstream texture_path;
+		texture_path << "resources\\texturas\\piscina" << i << ".png";
+		cargar_textura(texture_path.str().c_str(), &piscina.textures[i]);
+	}
+}
+
 /// FIN CARGAR MODELOS
+
+
+// Realiza el display de las piscinas
+void display_piscina(GLuint transform_loc) {
+	// Activamos el modo Blend para las texturas
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendColor(1.0f, 1.f, 1.f, 0.5f);
+
+
+	// Carga Matriz identidad
+	glm::mat4 transform = glm::mat4();
+	
+	// Trasalada a la posicion de la piscina
+	transform = glm::translate(transform, glm::vec3(0.3f, 0.0f, 0.01f));
+
+	// Escala el tamaño de la piscina
+	transform = glm::scale(transform, glm::vec3(0.9, 0.9, 0.1));
+
+	// Selecciona la textura de piscina a usar
+	glBindTexture(GL_TEXTURE_2D, piscina.textures[piscina.texture_index]);
+
+	// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
+	glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
+
+	// Cargamos el vao de la figura del cuadrado en el contexto actual
+	glBindVertexArray(VAOCuadrado);
+
+	// Dibujamos los cuadrados
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	// Desactivamos Blend y liberamos textura
+	glDisable(GL_BLEND);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	
+	// Le sumo uno a la variable random para que vaya alternando entre las 15 texturas diferentes
+	if (!(piscina.timer % 5)) {
+
+		if (!piscina.reverse){
+			piscina.texture_index++;
+			if (piscina.texture_index == 15) piscina.reverse = true;
+		}
+		else {
+			piscina.texture_index--;
+			if (piscina.texture_index == 0) piscina.reverse = false;
+		}
+		// piscina.texture_index %= 16;
+	}
+
+	piscina.timer++;
+
+}
+
 
 // Realiza el display del suelo
 void display_suelo(GLuint transform_loc) {
+	glEnable(GL_TEXTURE_2D);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glm::mat4 transform;
@@ -264,27 +363,51 @@ void display_suelo(GLuint transform_loc) {
 			// Calculo la Matriz
 			transform = glm::mat4(); // Matriz Identidad
 
-			// Rota cada uno de los cuadrados antes de colocarlos
-			transform = glm::rotate(transform, glm::radians(angulo_suelo), glm::vec3(1.0f, 0.f, 0.f));
-
 			// Los colocamos en su posicion
 			transform = glm::translate(transform, glm::vec3(x, y, 0.f));
 
 			// Los escalamos al tamaño
 			transform = glm::scale(transform, glm::vec3((GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo), (GLfloat)(1 / escala_suelo)));
 
+			// Traemos textura al contexto actual
+			glBindTexture(GL_TEXTURE_2D, textura_suelo);
+
 			// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
 			glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
 			// Cargamos el vao de la figura del cuadrado en el contexto principal
-			glBindVertexArray(VAOCuadrado);
+			glBindVertexArray(VAOCubo);
 
 			// Dibujamos los cuadrados
-			glDrawArrays(GL_TRIANGLES, 0, 6);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 	}
 }
+
+
+void iluminacion() {
+	//el color del objeto
+	unsigned int colorLoc = glGetUniformLocation(shaderProgram, "objectColor");
+	//glUniform3f(colorLoc, 1.0, 1.0f, 0.0f);
+
+	//el color de la luz ambiente 
+	unsigned int lightLoc = glGetUniformLocation(shaderProgram, "lightColor");
+	glUniform3f(lightLoc, 0.5f, 0.5f, 0.5f);
+
+	//luz difusa 
+	unsigned int lightPosLoc = glGetUniformLocation(shaderProgram, "lightPos");
+	glUniform3f(lightPosLoc, (GLfloat)grua.foco().x, (GLfloat)grua.foco().y, (GLfloat)grua.foco().z + 2);
+
+
+	//luz especularf
+	//la posicion del usuario/camara (0,0,10) en nuestro caso
+	unsigned int viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
+
+}
+
 
 // Inicializa OpenGL
 void openGlInit() {
@@ -295,6 +418,7 @@ void openGlInit() {
 	glEnable(GL_DEPTH_TEST); // z-buffer
 	//glEnable(GL_CULL_FACE); //ocultacion caras back
 	//glCullFace(GL_BACK);
+	glEnable(GL_TEXTURE_2D); // Habilita el mapeado de texturas 
 }
 
 
@@ -352,21 +476,37 @@ int main(int argc, char** argv) {
 	cargar_ejes();
 	/// FIN CARGAR figuras en el VAO
 
+	/// Cargamos Texturas de Suelo y Piscina
+	cargar_piscina();
+
+	cargar_textura("resources\\texturas\\suelo.jpg", &textura_suelo);
+	///
+
 	/// CREAMOS GRUA
-	grua1 = Grua(&angulo_suelo, VAOEsfera, VAOCubo);
+	grua = Grua(VAOEsfera, VAOCubo);
 	/// FIN CREAR GRUA
 
+	/// CREAMOS CAMARA
+	camara = Camara(&w, &h, shaderProgram);
+	/// FIN CREAMOS CAMARA
+	
 	// Activamos o shader
 	glUseProgram(shaderProgram);
+	glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
 
-	/// CREAMOS CAMARA
-	Camara camara = Camara(&w, &h, shaderProgram);
-	/// FIN CREAMOS CAMARA
+
+	// Obtenemos las localizacion de los vectores
+	unsigned int lightLoc = glGetUniformLocation(shaderProgram, "lightColor");
+	unsigned int objectColor = glGetUniformLocation(shaderProgram, "objectColor");
+	unsigned int lightPos = glGetUniformLocation(shaderProgram, "lightPos");
+	unsigned int lightPoint = glGetUniformLocation(shaderProgram, "lightPoint");
+	unsigned int viewPos = glGetUniformLocation(shaderProgram, "viewPos");
 
 	
 
 	// Obtenemos la localizacion de la matriz en el shader
 	GLuint transform_loc = glGetUniformLocation(shaderProgram, "transform");
+
 
 	///MAIN LOOP
 	// -----------
@@ -383,17 +523,28 @@ int main(int argc, char** argv) {
 		if (eleccion_camara==2) {
 			camara.default_view();
 		}else if(eleccion_camara==1){ //si es 1 es camara en primera persona
-			angulo_suelo = 0;
-			camara.first_person(grua1.position(), grua1.angle());
+			camara.first_person(grua.position(), grua.angle());
 			
 		} else if(eleccion_camara==3){ // si es 3 es tercera persona
-			angulo_suelo = 0;
-			camara.third_person(grua1.position(), grua1.angle());
+			camara.third_person(grua.position(), grua.angle());
 		}
-		
+
+		// Activo las texturas
+
+		glActiveTexture(GL_TEXTURE0);
+
+		// Inicializa vectores
+		glUniform3f(lightLoc, 1.0f, 1.0f, 1.0f);
+		glUniform3f(objectColor, 1.0f, 1.0f, 1.0f);
+
+
 		/// SUELO
 		display_suelo(transform_loc);
 		/// FIN SUELO
+
+		/// PISCINA
+		display_piscina(transform_loc);
+		/// FIN PISCINA
 
 		/// DIBUJAR EJES
 		// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -404,12 +555,21 @@ int main(int argc, char** argv) {
 		// glDrawElements(GL_LINES, 9, GL_UNSIGNED_INT, 0);
 		/// FIN DIBUJAR EJES
 		
+
+
 		/// GRUA
-		
-		grua1.move();
-		grua1.display(transform_loc);
-		
+
+		grua.move();
+		grua.display(transform_loc);
+
+
 		/// FIN GRUA
+
+		iluminacion();
+
+
+		
+		
 		
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -456,17 +616,16 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	if (eleccion_camara == 2){
 		/// subir camara
 		if (key == GLFW_KEY_K) {//letra k
-			angulo_suelo++;
-			if (glm::radians(angulo_suelo) >= M_2_PI) {
-				angulo_suelo -= (GLfloat)M_2_PI;
+
+			if (camara.angle() < 175) {
+				camara.angle()++;
 			}
 		}
 
 		/// bajar camara
 		if (key == GLFW_KEY_L) {//letra l
-			angulo_suelo--;
-			if (glm::radians(angulo_suelo) <= -M_2_PI) {
-				angulo_suelo += (GLfloat)M_2_PI;
+			if (camara.angle() > 90) {
+				camara.angle()--;
 			}
 		}
 	}
@@ -475,72 +634,72 @@ void keyCallback(GLFWwindow* window, int key, int scan_code, int action, int mod
 	
 	/// acelerar
 	if (key == GLFW_KEY_W) {//letra w
-		grua1.acelerar();
+		grua.acelerar();
 	}
 
 	/// marcha atras/frenar
 	if (key == GLFW_KEY_X) {//letra x
-		grua1.frenar();
+		grua.frenar();
 	}
 
 	/// derecha
 	if (key == GLFW_KEY_D) {//letra d
-		grua1.girar(RIGHT);
+		grua.girar(RIGHT);
 	}
 
 	/// izquierda
 	if (key == GLFW_KEY_A) {//letra a
-		grua1.girar(LEFT);
+		grua.girar(LEFT);
 	}
 	
 	//espacio para freno de mano
 	/// freno de mano
 	if (key == GLFW_KEY_SPACE) {//espacio
-		grua1.handbrake();
+		grua.handbrake();
 	}
 	
 	//primera articulacion
 	
 	/// adelante brazo
 	if (key == GLFW_KEY_UP) {//flechira arriba
-		grua1.rotar_art(0, FRONT);
+		grua.rotar_art(0, FRONT);
 	}
 
 	/// atras brazo
 	if (key == GLFW_KEY_DOWN) {//flechita abajo
-		grua1.rotar_art(0, BACK);
+		grua.rotar_art(0, BACK);
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_RIGHT) {//flechita derecha
-		grua1.rotar_art(0, RIGHT);
+		grua.rotar_art(0, RIGHT);
 	}
 	
 	/// brazo a izquierda
 	if (key == GLFW_KEY_LEFT) {//flechita izquierda
-		grua1.rotar_art(0, LEFT);
+		grua.rotar_art(0, LEFT);
 	}
 	
 	//segunda articulacion
 		
 	/// adelante brazo
 	if (key == GLFW_KEY_T) {//flechira arriba
-		grua1.rotar_art(1, FRONT);
+		grua.rotar_art(1, FRONT);
 	}
 
 	/// atras brazo
 	if (key == GLFW_KEY_G) {//flechita abajo
-		grua1.rotar_art(1, BACK);
+		grua.rotar_art(1, BACK);
 	}
 
 	/// brazo a derecha
 	if (key == GLFW_KEY_H) {//flechita derecha
-		grua1.rotar_art(1, RIGHT);
+		grua.rotar_art(1, RIGHT);
 	}
 
 	/// brazo a izquierda
 	if (key == GLFW_KEY_F) {//flechita izquierda
-		grua1.rotar_art(1, LEFT);
+		grua.rotar_art(1, LEFT);
 	}
 
 	//cambio entre las camaras de la grua

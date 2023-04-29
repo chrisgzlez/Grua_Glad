@@ -1,13 +1,24 @@
 #include <Camara.h>
 
+#include <iostream>
+
 Camara::Camara() {
 	return;
 }
 
 Camara::Camara(GLsizei* view_width, GLsizei* view_height, GLuint shader_program) {
+	this->angle_x = 90;
 	this->view_width = view_width;
 	this->view_height = view_height;
 	this->shader = shader_program;
+}
+
+const GLfloat& Camara::angle() const {
+	return this->angle_x;
+}
+
+GLfloat& Camara::angle(){
+	return this->angle_x;
 }
 
 void Camara::default_view() {
@@ -20,11 +31,18 @@ void Camara::default_view() {
 	// la posicionamos en el 0 0 y le damos un poco de altura
 	// miramos al centro de la pantalla
 	// y en el caso de la normal que apunte hacia el eje y
+
 	view = glm::lookAt(
-		glm::vec3(0.0f, 0.0f, 5.0f),
-		glm::vec3(0.0f, 0.0f, 0.0f), 
-		glm::vec3(0.0f, 1.0f, 0.0f)
+		glm::vec3(0.0, (GLfloat)cos(glm::radians(this->angle_x))*5, (GLfloat)sin(glm::radians(this->angle_x))*5),
+		glm::vec3(0.f, 0.f, 0.f),
+		EJE_Y
 	);
+
+	// view = glm::lookAt(
+	// 	glm::vec3(0.0f, 0.0f, 5.0f),
+	// 	glm::vec3(0.0f, 0.0f, 0.0f), 
+	// 	glm::vec3(0.0f, 1.0f, 0.0f)
+	// );
 
 	unsigned int viewLoc = glGetUniformLocation(this->shader, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -49,7 +67,8 @@ void Camara::first_person(glm::vec3 pos, glm::vec3 angle) {
 	// miramos como si fueramos el conductor de la grua (parte de alante del cubo
 	// miramos un poco mas alejado de ese punto
 
-	view = glm::lookAt(pos + glm::vec3(0.f, 0.f, 0.2f),
+	view = glm::lookAt(
+		pos + glm::vec3(0.f, 0.f, 0.2f),
 		pos + glm::vec3(1.5f * cos(glm::radians(angle.z)), 1.5f * sin(glm::radians(angle.z)), 0.2f),
 		EJE_Z
 	);

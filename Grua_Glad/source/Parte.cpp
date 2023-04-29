@@ -1,13 +1,15 @@
 #include <Parte.h>
+
 #define ACCELERATION 0.001f
 #define MAX_ANGULO_ROT 70
+
 
 Parte::Parte() {
 	return;
 }
 
 
-Parte::Parte(GLfloat px, GLfloat py, GLfloat pz, GLfloat sx, GLfloat sy, GLfloat sz, GLuint num_vertices, GLuint VAO) {
+Parte::Parte(GLfloat px, GLfloat py, GLfloat pz, GLfloat sx, GLfloat sy, GLfloat sz, GLuint num_vertices, GLuint VAO, const char* texture_path) {
 	this->_position = glm::vec3(px, py, pz);
 	this->scale = glm::vec3(sx, sy, sz);
 	this->ang_x = 0;
@@ -16,11 +18,18 @@ Parte::Parte(GLfloat px, GLfloat py, GLfloat pz, GLfloat sx, GLfloat sy, GLfloat
 	this->vel = 0;
 	this->VAO = VAO;
 	this->num_vertices = num_vertices;
+
+	// Inicializa y carga la textura
+	cargar_textura(texture_path, &this->_textura);
+	//cargar_textura("resources\\texturas\\red.png", &textura1);
 }
 
 
 
 void Parte::display(glm::mat4* base, GLuint matrix_loc) {
+	glEnable(GL_TEXTURE_2D);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 	// Declaramos e Inicializamos matriz de transformacion
 	glm::mat4 transform = glm::mat4();
 
@@ -48,14 +57,20 @@ void Parte::display(glm::mat4* base, GLuint matrix_loc) {
 	// Tamaño de la base de la grua
 	transform = glm::scale(transform, this->scale);
 
+	// Realizamos el binde de la textura para traela al contexto actual
+	glBindTexture(GL_TEXTURE_2D, this->_textura);
+
 	// Le pasamos a la matriz del shader un vector con los valores de la matriz transform
 	glUniformMatrix4fv(matrix_loc, 1, GL_FALSE, glm::value_ptr(transform));
 
-	// Cargamos el vao de la figura del cuadrado en el contexto principal
+	// Cargamos el vao de la figura en el contexto actual
 	glBindVertexArray(this->VAO);
 
 	// Dibujamos los cuadrados
 	glDrawArrays(GL_TRIANGLES, 0, this->num_vertices);
+
+	// Mirar que hace
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Parte::move() {
@@ -126,4 +141,8 @@ const glm::vec3& Parte::position() const {
 
 glm::vec3 Parte::angle() const {
 	return glm::vec3(this->ang_x, this->ang_y, this->ang_z);
+}
+
+GLuint* Parte::textura() {
+	return &this->_textura;
 }

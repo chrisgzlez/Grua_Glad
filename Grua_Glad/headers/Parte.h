@@ -13,7 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
+#include <texturas.h>
 
 enum direction {
 	FRONT,
@@ -28,10 +28,13 @@ private:
 	glm::vec3	scale;						// Escalado del objeto (size)
 	GLfloat		ang_x, ang_y, ang_z;		// Angulos de translacion sobre los ejes
 	GLfloat		vel;						// Velocidad
-	
+
 	// Hacer Clase VAO
 	GLuint		VAO;						// VAO
 	GLuint		num_vertices;				// Numero de vertices de la figura
+
+	GLuint		_textura;					// Textura de la parte
+
 
 public:
 
@@ -40,7 +43,7 @@ public:
 
 	// Constructor
 	// TODO: Hacer clase VAO, guardar ahí numero de vertices
-	Parte(GLfloat px, GLfloat py, GLfloat pz, GLfloat sx, GLfloat sy, GLfloat sz, GLuint num_vertices, GLuint VAO);
+	Parte(GLfloat px, GLfloat py, GLfloat pz, GLfloat sx, GLfloat sy, GLfloat sz, GLuint num_vertices, GLuint VAO, const char* texture_path);
 
 
 	// Display
@@ -69,6 +72,9 @@ public:
 
 	// Detiene la grua en la posicion actual
 	void handbrake();
+
+	// Getter textura 
+	GLuint* textura();
 };
 
 #endif // PARTE_H

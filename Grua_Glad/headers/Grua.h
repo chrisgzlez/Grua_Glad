@@ -19,12 +19,16 @@ typedef struct {
 	Parte brazo;
 } Brazo;
 
+
+
+
 class Grua {
 private:
 	
-	GLfloat* angulo_camara;	// Angulo base de la grua
 	Parte base;
 	Brazo brazos[2];
+
+	glm::vec3 _foco; // Foco Luz
 
 	
 public:
@@ -32,7 +36,7 @@ public:
 	Grua();
 
 	// Constructor
-	Grua(GLfloat *angulo_base, GLuint VAOEsfera, GLuint VAOCubo);
+	Grua(GLuint VAOEsfera, GLuint VAOCubo);
 
 	// Display
 	void display(GLuint matrix);
@@ -60,6 +64,10 @@ public:
 
 	// Get current angle
 	const glm::vec3& angle() const;
+
+	// Get foco de luz
+	const glm::vec3& foco() const;
+
 
 
 
